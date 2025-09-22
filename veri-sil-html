@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Veri Silme Talimatı</title>
+</head>
+<body>
+  <h1>Veri Silme Talimatı</h1>
+  <p>Facebook uygulamamızı kullandıysanız ve verilerinizin silinmesini istiyorsanız, lütfen aşağıdaki adımları izleyin:</p>
+  <ol>
+    <li>Facebook hesabınızla giriş yapın.</li>
+    <li>“Verilerimi Sil” butonuna tıklayın veya bize e-posta gönderin.</li>
+    <li>Talebiniz 24 saat içinde işleme alınacaktır.</li>
+  </ol>
+  <p>İletişim: <a href="mailto:erenbytm15@gmail.com">erenbytm15@gmail.com</a></p>
+</body>
+</html>

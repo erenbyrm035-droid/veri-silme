@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Sparkles, RotateCcw, ScanLine } from "lucide-react";
 import { Segmented } from "@/components/ui/Segmented";
@@ -9,11 +10,19 @@ import { SelfAssessment } from "./SelfAssessment";
 import { AnalysisResult } from "./AnalysisResult";
 import { ScoreTrends } from "./ScoreTrends";
 import { POSTURE_DISCLAIMER } from "@/lib/posture/problems";
+import { deriveFindings, type Kp, type DerivedFinding } from "@/lib/posture/from-keypoints";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type {
   PostureAnalysis,
   PostureProblem,
   TrainingEnvironment,
 } from "@/lib/database.types";
+
+// Ağır TF.js paketi yalnızca bu bölüm görününce yüklenir.
+const PoseDetector = dynamic(
+  () => import("./PoseDetector").then((m) => m.PoseDetector),
+  { ssr: false, loading: () => <Skeleton className="h-48 w-full rounded-2xl" /> }
+);
 
 type Mode = "result" | "form" | "analyzing";
 
@@ -36,7 +45,27 @@ export function PostureClient({
   const [env, setEnv] = useState<TrainingEnvironment>(defaultEnv);
   const [photos, setPhotos] = useState<UploadedPhotos>({});
   const [selected, setSelected] = useState<Set<PostureProblem>>(new Set());
+  const [measured, setMeasured] = useState<DerivedFinding[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Poz tespitinden gelen NESNEL bulgular. Eskiden eklem noktaları
+   * hesaplanıp atılıyordu; artık ölçülen bulgular işaretli duruma eklenir ve
+   * öz-değerlendirmeyle birlikte analize gider.
+   *
+   * Ölçüm işareti EKLER, kaldırmaz: kullanıcının kendi işaretlediği bir
+   * durumu makine ölçemedi diye silmek yanlış olurdu.
+   */
+  function onKeypoints(kps: Kp[]) {
+    const found = deriveFindings(kps);
+    setMeasured(found);
+    if (found.length === 0) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const f of found) next.add(f.problem);
+      return next;
+    });
+  }
 
   function toggle(p: PostureProblem) {
     setSelected((prev) => {
@@ -171,6 +200,27 @@ export function PostureClient({
                 bilgiler analiz sonucunu ve düzeltici programı belirler.
               </p>
               <SelfAssessment selected={selected} onToggle={toggle} />
+            </div>
+
+            <div className="rounded-2xl border border-ink-border bg-ink-card p-4">
+              <h2 className="mb-1 text-sm font-semibold">4. Ölçüm (İsteğe Bağlı)</h2>
+              <p className="mb-4 text-xs text-fg-muted">
+                Fotoğrafını yükle; eklem noktaların tarayıcıda ölçülsün. Bulunan
+                durumlar yukarıdaki listede otomatik işaretlenir.
+              </p>
+              <PoseDetector onKeypoints={onKeypoints} />
+              {measured.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {measured.map((f) => (
+                    <li key={f.problem} className="flex items-start gap-2 text-xs text-brand">
+                      <span aria-hidden>✓</span>
+                      <span>
+                        <strong>{f.problem}</strong> işaretlendi — {f.measurement}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="flex gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-200/90">

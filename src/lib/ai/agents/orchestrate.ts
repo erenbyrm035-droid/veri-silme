@@ -4,7 +4,7 @@ import type { AIProvider, ChatMessage } from "@/lib/ai/provider";
 import { loadAgentConfigs } from "./registry";
 import {
   routeByRules, mergeSelections, buildRouterPrompt, parseRouterOutput,
-  FALLBACK_AGENT, MAX_AGENTS,
+  filterEnabled, FALLBACK_AGENT, MAX_AGENTS,
 } from "./router";
 import { runSpecialists, recordRuns, type RunContext } from "./runner";
 import { buildSynthesizerPrompt, findingsToPrompt, needsSynthesis, ALL_FAILED_FALLBACK } from "./synthesizer";
@@ -63,6 +63,15 @@ export interface OrchestrateResult {
     healthContext: string;
   };
   turnId: string;
+  /**
+   * Tek uzman optimizasyonuyla çalışan ajan (varsa).
+   *
+   * Bu turda `runSpecialists` atlandığı için telemetri BURADA yazılamaz —
+   * token sayısı ancak cevap akıtıldıktan sonra bilinir. Route handler
+   * akış bitince `recordRuns` ile bu ajanı kaydeder; aksi halde ajan başına
+   * ölçümler en yaygın durumu (tek uzman) hiç görmüyordu.
+   */
+  singleAgentKey: AgentKey | null;
   selections: AgentSelection[];
   findings: AgentFinding[];
   configs: Map<AgentKey, AgentConfig>;
@@ -85,7 +94,7 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
   const empty: OrchestrateResult = {
     messages: [], streamConfig: { temperature: 0.6, maxTokens: 900 },
     finalText: null, safety: { needed: false, config: null, healthContext: "" },
-    turnId, selections: [], findings: [], configs: new Map(),
+    turnId, singleAgentKey: null, selections: [], findings: [], configs: new Map(),
     routerUsedLlm: false, agentBadges: [],
   };
 
@@ -138,6 +147,10 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
   // çünkü kullanıcı sormuyor.
   selections = mergeSelections(selections, ruled.forced, MAX_AGENTS);
 
+  // Kapalı ajanları ele; hiçbiri kalmazsa genel koça düş. Boş dizi
+  // "uzmansız cevap ver" demek — ayrıntı: router.ts / filterEnabled.
+  selections = filterEnabled(selections, (k) => !!configs.get(k)?.enabled);
+
   // --- 3. Uzmanlar (paralel) ---
   const runCtx: RunContext = {
     userId: input.userId,
@@ -153,9 +166,10 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
   // çalıştırıp sonra tekrar model çağırmak yerine, cevabı doğrudan o
   // uzmanın promptuyla akıtıyoruz — bir LLM çağrısı tasarruf.
   const singleAgent = selections.length === 1 ? configs.get(selections[0].key) : null;
+  const singleAgentActive = !!singleAgent?.enabled;
 
   let findings: AgentFinding[] = [];
-  if (!singleAgent || !singleAgent.enabled) {
+  if (!singleAgentActive) {
     findings = await runSpecialists(runCtx, configs, selections);
   }
 
@@ -166,7 +180,7 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
   let messages: ChatMessage[];
   let streamConfig: { temperature: number; maxTokens: number };
 
-  if (singleAgent && singleAgent.enabled) {
+  if (singleAgentActive && singleAgent) {
     // Tek uzman → nihai cevabı kendisi yazar (koç sesiyle).
     const ctxBlock = buildAgentContext(singleAgent.memoryLayers, input.memory, singleAgent.memoryLimit);
     messages = [
@@ -182,11 +196,21 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
       { role: "user", content: input.message },
     ];
     streamConfig = { temperature: singleAgent.temperature, maxTokens: 900 };
+  } else if (selections.length === 0) {
+    // Hiçbir uzman açık değil. Uzmansız ama çalışan bir koç, hata mesajından
+    // iyidir: temel kişilik + kullanıcı verisiyle normal cevap üretilir.
+    const ctxBlock = buildAgentContext(["profile", "workout", "goals"], input.memory, 2000);
+    messages = [
+      { role: "system", content: `${input.baseVoice}\n\n=== VERİ ===\n${ctxBlock}\n=== VERİ SONU ===` },
+      ...toChat(input.memory),
+      { role: "user", content: input.message },
+    ];
+    streamConfig = { temperature: 0.6, maxTokens: 900 };
   } else {
     const usable = findings.filter((f) => f.ok && f.content.trim());
     if (usable.length === 0) {
       return {
-        ...empty, configs, selections, findings, routerUsedLlm, turnId,
+        ...empty, configs, selections, findings, routerUsedLlm, turnId, singleAgentKey: null,
         finalText: ALL_FAILED_FALLBACK,
         agentBadges: findings.map((f) => ({ key: f.key, name: f.name, ok: f.ok })),
       };
@@ -233,6 +257,7 @@ export async function orchestrate(input: OrchestrateInput): Promise<OrchestrateR
       healthContext,
     },
     turnId,
+    singleAgentKey: singleAgentActive && singleAgent ? singleAgent.key : null,
     selections,
     findings,
     configs,

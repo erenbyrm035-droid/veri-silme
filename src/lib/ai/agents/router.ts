@@ -1,6 +1,6 @@
 import { ROUTABLE_SPECIALISTS } from "./specialists";
 import { countMatches, trLower, type RouteSignals } from "./specialists/kit";
-import type { AgentSelection, SpecialistKey } from "./types";
+import type { AgentKey, AgentSelection, SpecialistKey } from "./types";
 
 // ============================================================================
 // ORCHESTRATOR — HANGİ UZMAN ÇALIŞACAK?
@@ -47,6 +47,29 @@ const THRESHOLD = 0.8;
  * tasarımı bu yüzden pratikte ölü kalıyordu.
  */
 const SIGNAL_THRESHOLD = 0.35;
+
+/**
+ * Kapalı ajanları seçimden çıkarır ve gerekirse genel koça düşer.
+ *
+ * Yönlendirici ajan ayarlarını GÖRMEZ — kural motoru yalnızca mesaja ve
+ * bağlam sinyallerine bakar. Bu yüzden panelden kapatılmış bir uzman
+ * seçilebiliyor. Bu filtre olmadan seçim aşağıda sessizce boş bulguya
+ * dönüşüyor ve kullanıcı cevap yerine hata mesajı alıyordu: yani bir ajanı
+ * kapatmak koçu o konuda tamamen bozuyordu.
+ *
+ * Dönen boş dizi "uzmansız cevap ver" demektir, hata değil.
+ */
+export function filterEnabled(
+  selections: AgentSelection[],
+  isEnabled: (key: AgentKey) => boolean
+): AgentSelection[] {
+  const kept = selections.filter((s) => isEnabled(s.key));
+  if (kept.length > 0) return kept;
+  if (isEnabled(FALLBACK_AGENT)) {
+    return [{ key: FALLBACK_AGENT, score: 0, reason: "forced" }];
+  }
+  return [];
+}
 
 export interface RouteDecision {
   selected: AgentSelection[];

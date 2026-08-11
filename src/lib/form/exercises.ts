@@ -33,31 +33,50 @@ export function toMap(keypoints: Keypoint[]): KeypointMap {
 /**
  * Üç nokta arasındaki açı (b tepe noktası), derece cinsinden 0-180.
  * Örn. jointAngle(kalça, diz, ayakBileği) → diz bükülme açısı.
+ *
+ * Noktalar üst üste düşerse (MoveNet zaman zaman iki eklemi aynı koordinata
+ * koyar) açı TANIMSIZDIR → `null`. Eskiden `0` dönüyordu; 0 geçerli bir
+ * "tam bükülmüş" açı olduğu için bozuk kare hayalet tekrar saydırıyordu.
  */
-export function jointAngle(a: Keypoint, b: Keypoint, c: Keypoint): number {
+export function jointAngle(a: Keypoint, b: Keypoint, c: Keypoint): number | null {
   const abx = a.x - b.x, aby = a.y - b.y;
   const cbx = c.x - b.x, cby = c.y - b.y;
   const dot = abx * cbx + aby * cby;
   const magA = Math.hypot(abx, aby);
   const magC = Math.hypot(cbx, cby);
-  if (magA === 0 || magC === 0) return 0;
+  if (magA === 0 || magC === 0) return null;
   // Kayan nokta hatası acos'u NaN yapabilir → aralığa kıstır.
   const cos = Math.min(1, Math.max(-1, dot / (magA * magC)));
   return (Math.acos(cos) * 180) / Math.PI;
 }
 
-/** İki taraftan görünür olanın açısı; ikisi de varsa ortalaması. */
+/**
+ * İki taraftan görünür olanın açısı.
+ *
+ * `mode`:
+ *   "average" → simetrik hareketler (squat, şınav, press, curl). İki taraf
+ *               birlikte çalışır; ortalama gürültüyü azaltır.
+ *   "min"     → TEK TARAFLI hareketler (lunge). Ortalama almak burada YANLIŞ:
+ *               lunge'da ön diz 90°'ye inerken arka diz 150°'de kalabilir;
+ *               ortalama 120° olur ve eşiğin (105) altına hiç inmez, yani
+ *               tekrar hiç sayılmaz. Çalışan tarafı en bükülmüş taraf temsil
+ *               eder → minimum alınır.
+ */
 function bilateralAngle(
-  m: KeypointMap, a: string, b: string, c: string
+  m: KeypointMap, a: string, b: string, c: string, mode: "average" | "min" = "average"
 ): number | null {
   const vals: number[] = [];
   for (const side of ["left", "right"] as const) {
     const ka = m.get(`${side}_${a}`);
     const kb = m.get(`${side}_${b}`);
     const kc = m.get(`${side}_${c}`);
-    if (ka && kb && kc) vals.push(jointAngle(ka, kb, kc));
+    if (ka && kb && kc) {
+      const v = jointAngle(ka, kb, kc);
+      if (v !== null) vals.push(v);
+    }
   }
   if (vals.length === 0) return null;
+  if (mode === "min") return Math.min(...vals);
   return vals.reduce((s, v) => s + v, 0) / vals.length;
 }
 
@@ -151,7 +170,8 @@ export const FORM_EXERCISES: ExerciseConfig[] = [
     label: "Lunge",
     emoji: "🚶",
     jointLabel: "Ön diz açısı",
-    angle: (m) => bilateralAngle(m, "hip", "knee", "ankle"),
+    // Tek taraflı hareket: çalışan (öndeki) bacak en bükülmüş olandır.
+    angle: (m) => bilateralAngle(m, "hip", "knee", "ankle", "min"),
     downBelow: 105,
     upAbove: 160,
     range: [75, 175],
@@ -245,10 +265,19 @@ export const initialRepState = (): RepState => ({
  *
  * Saf fonksiyon — yeni durum döndürür, mutasyon yapmaz.
  */
+/**
+ * Fiziksel alt sınır. Diz ve dirsek bu hareketlerde 20°'nin altına İNEMEZ;
+ * bu değerler ancak bozuk poz tahmininden gelir. Kaynakta (jointAngle) artık
+ * `null` dönüyoruz, ama sayacın kendisi de saçma girdiyi reddetmeli —
+ * tek bir bozuk kare sahte tekrar saydırmasın.
+ */
+const MIN_PLAUSIBLE_ANGLE = 20;
+
 export function advanceRep(
   state: RepState, angle: number | null, cfg: ExerciseConfig
 ): RepState {
-  if (angle === null || Number.isNaN(angle)) return state;
+  if (angle === null || !Number.isFinite(angle)) return state;
+  if (angle < MIN_PLAUSIBLE_ANGLE) return state;
 
   if (angle <= cfg.downBelow) {
     return {

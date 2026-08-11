@@ -10,6 +10,7 @@ import { getAgentSnapshot, snapshotToPrompt, hasAiConsent } from "@/lib/ai/agent
 import { selfCheck, selfCheckPrompt } from "@/lib/ai/agent/selfcheck";
 import { topNudges, nudgesToPrompt } from "@/lib/ai/agent/proactive";
 import { orchestrate, applySafety, type OrchestrateResult } from "@/lib/ai/agents/orchestrate";
+import { recordRuns } from "@/lib/ai/agents/runner";
 import { extractSignals, type MemoryInput } from "@/lib/ai/agents/memory";
 
 export const runtime = "nodejs";
@@ -186,6 +187,7 @@ export async function POST(request: Request) {
   const pendingProposals = (plan?.findings ?? []).reduce((a, f) => a + f.proposals, 0);
 
   const promptTokens = messages.reduce((a, m) => a + estTokens(m.content), 0);
+  const streamStarted = Date.now();
   const meta = {
     cid: conversationId ?? "",
     tools: toolsUsed,
@@ -262,6 +264,29 @@ export async function POST(request: Request) {
           total_tokens: promptTokens + completionTokens,
         });
       } catch { /* muhasebe kritik değil */ }
+
+      // TEK UZMAN TELEMETRİSİ. Tek uzman çalıştığında maliyet için
+      // `runSpecialists` atlanır, dolayısıyla orchestrate `ai_agent_runs`'a
+      // hiçbir şey yazamaz — token sayısı ancak akış bitince bilinir.
+      // Bu kayıt olmadan admin panelindeki ajan başına ölçümler trafiğin
+      // en yaygın durumunu hiç görmüyordu.
+      if (plan?.singleAgentKey) {
+        try {
+          await recordRuns(
+            { userId: user.id, conversationId, turnId: plan.turnId },
+            [],
+            [{
+              agentKey: plan.singleAgentKey,
+              latencyMs: Date.now() - streamStarted,
+              promptTokens,
+              completionTokens,
+              model,
+              ok: true,
+              reason: plan.selections[0]?.reason ?? "keyword",
+            }]
+          );
+        } catch { /* telemetri kaybı cevabı engellemez */ }
+      }
 
       await log(supabase, user.id, conversationId, "info", "chat_completed", {
         model, promptTokens, completionTokens,

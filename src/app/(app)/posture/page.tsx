@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getPostureAnalyses } from "@/lib/data/posture";
 import { PostureClient } from "@/components/posture/PostureClient";
+import { ClinicalWarning } from "@/components/posture/ClinicalWarning";
 import { PremiumGate } from "@/components/premium/PremiumGate";
-import { PoseSection } from "./PoseSection";
 import type { TrainingEnvironment } from "@/lib/database.types";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,10 @@ export default async function PosturePage() {
           AI destekli duruş analizi ve kişiselleştirilmiş düzeltici egzersiz programı.
         </p>
       </header>
+      {/* Tıbbi sorumluluk reddi — sağlık verisi gösteren her ekranda görünmeli.
+          Premium kapısının DIŞINDA: uyarı, özelliğe erişimi olmayan kullanıcıya
+          da görünür ve ücretli/ücretsiz ayrımından bağımsızdır. */}
+      <ClinicalWarning risk={analyses[0]?.risk_level ?? null} />
       <PremiumGate
         feature="posture_analysis"
         mode="replace"
@@ -50,9 +54,6 @@ export default async function PosturePage() {
           defaultEnv={defaultEnv}
           initialAnalyses={analyses}
         />
-        {/* Tarayıcı içi poz tespiti (MoveNet). Ağır TF.js paketi yalnızca
-            kullanıcı bu bölümü açtığında yüklenir. */}
-        <PoseSection />
       </PremiumGate>
     </div>
   );

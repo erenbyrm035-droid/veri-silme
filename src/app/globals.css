@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Tema tokenları — RGB kanal üçlüleri (Tailwind alpha desteği için).
+   Varsayılan koyu tema (ürünün amiral görünümü); açık tema opt-in.
+   ============================================================================ */
+:root,
+:root[data-theme="dark"] {
+  --bg: 11 13 10;
+  --surface: 20 23 15;
+  --surface-2: 25 29 19;
+  --border: 42 48 32;
+  --text: 242 244 238;
+  --muted: 154 160 140;
+  --brand: 214 248 76;
+  --brand-bright: 214 248 76;
+  --brand-muted: 195 212 0;
+  --coral: 255 107 74;
+  --glass: 255 255 255;      /* cam katman rengi (düşük opasite ile) */
+  --glass-op: 0.04;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: 246 245 239;
+  --surface: 255 255 255;
+  --surface-2: 239 238 230;
+  --border: 221 220 207;
+  --text: 22 24 15;
+  --muted: 95 99 83;
+  --brand: 122 143 0;
+  --brand-bright: 214 248 76;
+  --brand-muted: 122 143 0;
+  --coral: 224 74 37;
+  --glass: 20 22 15;
+  --glass-op: 0.03;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: 246 245 239;
+    --surface: 255 255 255;
+    --surface-2: 239 238 230;
+    --border: 221 220 207;
+    --text: 22 24 15;
+    --muted: 95 99 83;
+    --brand: 122 143 0;
+    --brand-bright: 214 248 76;
+    --brand-muted: 122 143 0;
+    --coral: 224 74 37;
+    --glass: 20 22 15;
+    --glass-op: 0.03;
+    color-scheme: light;
+  }
+}
+
+html,
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html {
+  transition: background-color 0.25s ease;
+  /* iOS: yatay taşmayı ve sağ/sol lastik bandı engelle */
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%; /* yatay/dikey döndürmede metin boyutu sabit */
+  /* Sert guard: hiçbir öğe sayfayı yatay kaydıramaz (clip → sticky bozulmaz) */
+  overflow-x: clip;
+  max-width: 100%;
+}
+body {
+  min-height: 100dvh;
+  /* iOS: sayfa üstünde/altında lastik-bant kaydırma zincirini kes */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent; /* dokunma gri parlaması yok */
+  /* Yatay taşmayı global kes (clip → position:sticky'yi bozmaz). Uzun metin/
+     grid/tablo yanlışlıkla ekranı genişletirse sayfa yatay kaymaz. */
+  overflow-x: clip;
+}
+/* Uzun kelimeler/URL'ler kutuyu taşırmasın. Başlıklarda 'normal' bırak
+   (kelime ortadan kırılmasın); paragraf/etiketlerde gerekince kır. */
+p, li, label, span, a { overflow-wrap: break-word; }
+h1, h2, h3, h4 { overflow-wrap: normal; word-break: keep-all; }
+
+/* ============================================================================
+   Safe Area — Dynamic Island / Notch / Home Indicator / Status Bar.
+   viewport-fit=cover ile env(safe-area-inset-*) değerleri açığa çıkar.
+   ============================================================================ */
+.pt-safe   { padding-top: env(safe-area-inset-top); }
+.pb-safe   { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe   { padding-left: env(safe-area-inset-left); }
+.pr-safe   { padding-right: env(safe-area-inset-right); }
+.px-safe   { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.mt-safe   { margin-top: env(safe-area-inset-top); }
+.mb-safe   { margin-bottom: env(safe-area-inset-bottom); }
+.min-h-dvh { min-height: 100dvh; }
+.h-dvh     { height: 100dvh; }
+/* Fixed alt çubuk: normal iç boşluk + home indicator payı */
+.pb-nav-safe { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
+/* Sticky üst bar: normal iç boşluk + notch/status bar payı */
+.pt-bar-safe { padding-top: calc(0.75rem + env(safe-area-inset-top)); }
+
+/* Kaydırılabilir alanlarda momentum + zincir kesme (iOS) */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Yatay sekme şeritleri: kaydırma çubuğunu gizle + momentum (mobil) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+/* Sağ kenarda daha fazla içerik olduğunu ima eden yumuşak solma */
+.fade-edge-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 9999px; }
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-ink-border bg-ink-card p-5 shadow-sm;
+  }
+  .card-hover {
+    @apply transition-colors hover:border-brand/40;
+  }
+  /* Glassmorphism kart */
+  .glass {
+    background: rgb(var(--glass) / var(--glass-op));
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid rgb(var(--text) / 0.08);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-black hover:bg-brand-muted;
+  }
+  .btn-ghost {
+    @apply btn border border-ink-border bg-transparent hover:bg-fg/5;
+    color: rgb(var(--text));
+  }
+  .input {
+    /* Mobilde 16px (text-base) — iOS Safari'nin odakta otomatik zoom'unu engeller. */
+    @apply w-full rounded-xl border border-ink-border bg-ink-soft px-4 py-3 text-base outline-none transition-colors focus:border-brand/60 md:text-sm;
+    color: rgb(var(--text));
+  }
+  .input::placeholder { color: rgb(var(--muted)); }
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide;
+    color: rgb(var(--muted));
+  }
+}
+
+/* Erişilebilirlik: klavye odak halkası */
+:focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Fareyle tıklamada halka gösterme (yalnızca klavye) */
+:focus:not(:focus-visible) { outline: none; }
+
+/* Metin seçimi */
+::selection {
+  background: rgb(var(--brand) / 0.3);
+  color: rgb(var(--text));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* iOS Safari: dokunmatik cihazlarda form kontrolleri ≥16px → odakta oto-zoom yok.
+   .input dışındaki ham input/textarea/select'ler için savunma katmanı. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Görseller taşmasın (responsive güvenlik ağı) */
+img, video, svg { max-width: 100%; }
+
+/* Yüksek kontrast modunda kenarlıkları belirginleştir (erişilebilirlik) */
+@media (prefers-contrast: more) {
+  .card, .input, .btn-ghost { border-color: rgb(var(--text) / 0.4); }
+}

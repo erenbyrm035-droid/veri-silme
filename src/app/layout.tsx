@@ -1,0 +1,91 @@
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeInitScript } from "@/components/theme/ThemeToggle";
+import { PWARegister } from "@/components/PWARegister";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Viva AI Coach — Yapay Zeka Destekli Fitness Koçun",
+    template: "%s · Viva AI Coach",
+  },
+  description:
+    "Antrenman, beslenme, kilo ve fiziksel gelişimini tek platformdan takip et. Viva, Türkiye'nin yapay zeka destekli fitness koçu.",
+  keywords: ["viva", "fitness", "antrenman", "beslenme", "yapay zeka", "koç", "spor"],
+  applicationName: "Viva AI Coach",
+  authors: [{ name: "Viva AI Coach" }],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Viva",
+    startupImage: [
+      // iPhone (portre) — device px = fiziksel / dpr
+      { url: "/splash/apple-splash-1170x2532.png", media: "(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1179x2556.png", media: "(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1284x2778.png", media: "(device-width:428px) and (device-height:926px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1290x2796.png", media: "(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1125x2436.png", media: "(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1242x2688.png", media: "(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-828x1792.png", media: "(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-750x1334.png", media: "(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-640x1136.png", media: "(device-width:320px) and (device-height:568px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      // iPad (portre)
+      { url: "/splash/apple-splash-1536x2048.png", media: "(device-width:768px) and (device-height:1024px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1668x2224.png", media: "(device-width:834px) and (device-height:1112px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-1668x2388.png", media: "(device-width:834px) and (device-height:1194px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+      { url: "/splash/apple-splash-2048x2732.png", media: "(device-width:1024px) and (device-height:1366px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" },
+    ],
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: "Viva AI Coach",
+    title: "Viva AI Coach — Cebindeki fitness koçun",
+    description:
+      "Antrenman, beslenme, egzersiz kütüphanesi, anatomi ve AI koç — hepsi tek platformda, Türkçe.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Viva AI Coach",
+    description: "Türkiye'nin yapay zeka destekli fitness koçu.",
+  },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0b" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f5ef" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  // maximumScale kaldırıldı — Apple erişilebilirlik (zoom) gereksinimi.
+  viewportFit: "cover", // env(safe-area-inset-*) değerlerini açığa çıkarır.
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="tr" className={inter.variable} suppressHydrationWarning>
+      <body className="min-h-[100dvh] bg-ink font-sans antialiased">
+        <ThemeInitScript />
+        {children}
+        <PWARegister />
+      </body>
+    </html>
+  );
+}

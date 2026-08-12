@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { syncMyGamification } from "@/lib/gamification/actions";
 import type { Exercise, WorkoutSet, Workout } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
+import { displayName, displayNameFor } from "@/lib/exercises/display";
 import { RestTimer } from "@/components/workout/RestTimer";
 import { VoiceToggle } from "@/components/workout/VoiceToggle";
 import { useVoiceCoach, useWakeLock } from "@/lib/voice/useVoiceCoach";
@@ -52,8 +53,12 @@ export function WorkoutSession({
     initialSets.length > 0 ? new Date(initialSets[0].created_at).getTime() : null
   );
 
+  // Setler `exercise_name` alanında TÜRKÇE iç ismi saklıyor (geçmiş kayıtlar
+  // bozulmasın diye o sütun değişmiyor). Gösterirken `exercise_id` üzerinden
+  // standart İngilizce isme çözüyoruz; egzersiz silinmişse saklanan isme düşer.
+  const byId = new Map(exercises.map((e) => [e.id, e]));
   const groupedByExercise = sets.reduce<Record<string, WorkoutSet[]>>((acc, s) => {
-    (acc[s.exercise_name] ||= []).push(s);
+    (acc[displayNameFor(s, byId)] ||= []).push(s);
     return acc;
   }, {});
 
@@ -61,7 +66,9 @@ export function WorkoutSession({
     const ex = exercises.find((e) => e.id === selectedExercise);
     if (!ex) return;
     const order =
-      (groupedByExercise[ex.name]?.length ?? 0) + 1;
+      // Gruplama anahtarı artık GÖSTERİLEN isim; sıra hesabı da onunla
+      // yapılmalı, yoksa ikinci set hep 1 numara alırdı.
+      (groupedByExercise[displayName(ex)]?.length ?? 0) + 1;
 
     const { data, error } = await supabase
       .from("workout_sets")
@@ -80,7 +87,7 @@ export function WorkoutSession({
     if (!error && data) {
       startedAt.current ??= Date.now(); // ilk set → süre sayacı başlar
       setSets((s) => [...s, data as WorkoutSet]);
-      voice.speak(VOICE_LINES.setLogged(order, ex.name));
+      voice.speak(VOICE_LINES.setLogged(order, displayName(ex)));
       // Dinlenme sayacını başlat (egzersiz önerisi ya da 90 sn)
       setRestSeconds(ex.rec_rest_sec ?? 90);
       // PR kontrolü (ağırlık girildiyse)
@@ -114,8 +121,8 @@ export function WorkoutSession({
         },
         { onConflict: "user_id,exercise_name" }
       );
-      setPrExercise(ex.name);
-      voice.speak(VOICE_LINES.prHit(ex.name), { interrupt: true });
+      setPrExercise(displayName(ex));
+      voice.speak(VOICE_LINES.prHit(displayName(ex)), { interrupt: true });
       setTimeout(() => setPrExercise((p) => (p === ex.name ? null : p)), 5000);
     }
   }
@@ -198,7 +205,7 @@ export function WorkoutSession({
             >
               {exercises.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.name} · {e.muscle_group}
+                  {displayName(e)} · {e.muscle_group}
                 </option>
               ))}
             </select>

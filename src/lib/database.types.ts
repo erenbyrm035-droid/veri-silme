@@ -209,6 +209,10 @@ export interface Exercise {
   is_home: boolean;
   is_gym: boolean;
   slug: string | null;
+  /** Standart isme göre türetilen video dosya adı (romanian-deadlift). */
+  video_slug: string | null;
+  /** Aynı hareketin diğer yaygın adları — arama bunlarla da eşleşir (RDL). */
+  aliases: string[];
   movement_type: string | null;
   thumbnail_url: string | null;
   primary_muscles: string[];
@@ -363,6 +367,15 @@ export interface WorkoutSet {
   weight_kg: number | null;
   completed: boolean;
   created_at: string;
+  /** Planlanan tekrar — gerçekleşenle (reps) karşılaştırılır. */
+  target_reps: number | null;
+  /** Reps In Reserve: sette kaç tekrar daha yapılabilirdi (0-10). */
+  rir: number | null;
+  /** Rate of Perceived Exertion: algılanan zorluk (1-10). */
+  rpe: number | null;
+  /** Bu setten sonra dinlenilen süre (sn). */
+  rest_sec: number | null;
+  notes: string | null;
 }
 
 export interface PersonalRecord {

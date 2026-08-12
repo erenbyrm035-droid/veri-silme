@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Exercise } from "@/lib/database.types";
+import { displayName } from "@/lib/exercises/display";
 import { DIFFICULTY_LABELS, EQUIPMENT_LABELS } from "@/lib/constants";
 import { thumbUrl, bustThumb } from "@/lib/media/exercise-media-set";
 import { Dumbbell, Home, Heart } from "lucide-react";
@@ -25,7 +26,7 @@ export function ExerciseCard({
         <div className="-mx-1 -mt-1 overflow-hidden rounded-xl border border-ink-border bg-ink-soft">
           <SmartImage
             src={thumb}
-            alt={`${exercise.name} görseli`}
+            alt={`${displayName(exercise)} görseli`}
             width={320}
             height={180}
             sizes="(max-width: 640px) 50vw, 320px"
@@ -35,7 +36,7 @@ export function ExerciseCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="flex items-center gap-1.5 truncate font-semibold">
-              {exercise.name}
+              {displayName(exercise)}
               {favorite && <Heart size={13} className="shrink-0 fill-coral text-coral" />}
             </h3>
             <p className="text-sm text-fg-muted">{exercise.muscle_group}</p>

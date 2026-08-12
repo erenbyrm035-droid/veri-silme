@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesSearch } from "@/lib/exercises/display";
 import { useMemo, useState } from "react";
 import type { Exercise } from "@/lib/database.types";
 import {
@@ -52,12 +53,8 @@ export function ExerciseBrowser({
     const q = query.trim().toLowerCase();
     return exercises.filter((e) => {
       if (onlyFav && !favSet.has(e.id)) return false;
-      if (
-        q &&
-        !e.name.toLowerCase().includes(q) &&
-        !e.muscle_group.toLowerCase().includes(q) &&
-        !(e.english_name?.toLowerCase().includes(q))
-      )
+      // Arama standart isim + alias + Türkçe iç isim üzerinden (RDL → Romanian Deadlift)
+      if (q && !matchesSearch(e, q) && !e.muscle_group.toLowerCase().includes(q))
         return false;
       if (muscle && e.muscle_group !== muscle) return false;
       if (equipment && e.equipment !== equipment) return false;

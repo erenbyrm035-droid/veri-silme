@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { displayName } from "@/lib/exercises/display";
 import { createClient } from "@/lib/supabase/server";
 import {
   getExerciseById,
@@ -102,9 +103,14 @@ export default async function ExerciseDetailPage({
       {/* Başlık */}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{exercise.name}</h1>
+          {/* Başlık STANDART İNGİLİZCE isim: kullanıcı hareketi YouTube/NASM/
+              ExRx'te aynı isimle arayabilsin. Türkçe karşılık alt satırda
+              yardımcı bilgi olarak kalır. */}
+          <h1 className="text-2xl font-bold">{displayName(exercise)}</h1>
           <p className="text-sm text-fg-muted">
-            {exercise.english_name ? `${exercise.english_name} · ` : ""}
+            {exercise.english_name && exercise.name !== exercise.english_name
+              ? `${exercise.name} · `
+              : ""}
             {exercise.muscle_group}
           </p>
           {exercise.exercise_goal?.length > 0 && (

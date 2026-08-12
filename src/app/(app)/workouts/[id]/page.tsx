@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { WorkoutSession } from "@/components/WorkoutSession";
 import { WorkoutEngine } from "@/components/workout/WorkoutEngine";
 import { getWorkoutSessionData } from "@/lib/workout/session-data";
+import { getWorkoutSummary } from "@/lib/workout/summary";
+import { analyzeWorkout } from "@/lib/workout/ai-analysis";
+import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
 import { formatShortDate } from "@/lib/utils";
 import { hasFeature } from "@/lib/premium/entitlements";
 import { ArrowLeft } from "lucide-react";
@@ -44,6 +47,33 @@ export default async function WorkoutDetailPage({
   ]);
 
   const isPremium = hasFeature(profile ?? undefined, "voice_coach");
+
+  // TAMAMLANMIŞ antrenman → motor yerine ÖZET gösterilir.
+  // Bulgular deterministik hesaplanır; AI analizi başarısız olursa (anahtar
+  // yok, kota, ağ) özet yine eksiksiz çalışır — sadece anlatı eksik olur.
+  if (workout.status === "completed") {
+    const summary = await getWorkoutSummary(id, user!.id);
+    if (summary) {
+      const analysis = await analyzeWorkout(summary).catch(() => null);
+      return (
+        <div className="space-y-6">
+          <Link
+            href="/workouts"
+            className="inline-flex items-center gap-2 text-sm text-fg-muted hover:text-fg"
+          >
+            <ArrowLeft size={16} /> Antrenmanlar
+          </Link>
+          <header>
+            <h1 className="text-2xl font-bold">{workout.title}</h1>
+            <p className="text-sm text-fg-muted">
+              {formatShortDate(workout.workout_date)} · tamamlandı
+            </p>
+          </header>
+          <WorkoutSummary data={summary} analysis={analysis} />
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="space-y-6">

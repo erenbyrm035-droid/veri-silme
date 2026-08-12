@@ -9,6 +9,13 @@ const mediaTypeEnum = z.enum(["gif", "animation", "video"]);
 /** Yeni/düzenleme egzersiz formu (skalar + dizi alanlar). */
 export const exerciseSchema = z.object({
   name: z.string().trim().min(2, "En az 2 karakter").max(160),
+  // GÖSTERİLEN İSİM. Arayüz her yerde bunu gösteriyor (lib/exercises/display.ts);
+  // `name` yalnızca iç anahtar. Düzenlenebilir olması şart, aksi halde yanlış
+  // bir standart isim admin panelinden düzeltilemez.
+  english_name: z.string().trim().max(160).nullable().optional().or(z.literal("")),
+  // Arama alias'ları: kullanıcı "RDL" yazınca Romanian Deadlift bulunsun.
+  aliases: z.array(z.string().trim()).default([]),
+  video_slug: z.string().trim().max(200).nullable().optional().or(z.literal("")),
   slug: z.string().trim().max(200).optional().or(z.literal("")),
   category: categoryEnum,
   subcategory: z.string().trim().max(80).nullable().optional().or(z.literal("")),
@@ -30,6 +37,15 @@ export const exerciseSchema = z.object({
   tips: z.array(z.string().trim()).default([]),
   tags: z.array(z.string().trim()).default([]),
   calories: z.coerce.number().int().min(0).max(2000).nullable().optional(),
+  // WORKOUT ENGINE BUNLARA BAĞLI:
+  //   rec_reps     → progressive overload hedef aralığı (parseRepRange)
+  //   rec_rest_sec → dinlenme sayacının varsayılanı
+  //   average_duration_sec → antrenman süresi tahmini
+  // Üçü de bugüne kadar formda yoktu; motor varsayılanlara düşüyordu.
+  rec_sets: z.coerce.number().int().min(1).max(20).nullable().optional(),
+  rec_reps: z.string().trim().max(60).nullable().optional().or(z.literal("")),
+  rec_rest_sec: z.coerce.number().int().min(0).max(600).nullable().optional(),
+  average_duration_sec: z.coerce.number().int().min(0).max(3600).nullable().optional(),
   movement_type: z.string().trim().max(60).nullable().optional().or(z.literal("")),
   seo_title: z.string().trim().max(160).nullable().optional().or(z.literal("")),
   seo_description: z.string().trim().max(320).nullable().optional().or(z.literal("")),

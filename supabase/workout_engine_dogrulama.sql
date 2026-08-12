@@ -1,10 +1,10 @@
 -- ===========================================================================
--- WORKOUT ENGINE — AŞAMA 1 DOĞRULAMA
+-- WORKOUT ENGINE — DOĞRULAMA (Aşama 1-4)
 --
 -- SALT OKUNUR. Tek sonuç tablosu döner (Supabase SQL Editor son sorguyu
 -- gösterir, bu yüzden tek sorgu).
 --
--- Önce migration 0050'i çalıştır, sonra bunu.
+-- Önce 0050, 0051, 0052 ve 0053 migration.larını çalıştır, sonra bunu.
 -- ===========================================================================
 
 with
@@ -74,13 +74,36 @@ kontroller as (
               and not exists (select 1 from public.exercises e where e.id = pr.exercise_id)),
          'kopuk PR kaydı var'
 
-  -- 4) Arama indeksleri
+  -- 4) Analitik (migration 0053)
   union all
-  select 4, 'Arama', 'english_name indeksi',
+  select 4, 'Analitik', 'workout_events tablosu',
+         exists (select 1 from information_schema.tables
+                  where table_schema='public' and table_name='workout_events'),
+         'migration 0053 çalışmamış — antrenman olayları toplanmıyor'
+  union all
+  select 4, 'Analitik', 'geçersiz olay adı reddediliyor',
+         exists (select 1 from pg_constraint where conname='workout_events_event_check'),
+         'check kısıtı yok — yazım hatası raporları ikiye böler'
+  union all
+  select 4, 'Analitik', 'RLS açık',
+         coalesce((select c.relrowsecurity from pg_class c
+                    join pg_namespace n on n.oid=c.relnamespace
+                   where n.nspname='public' and c.relname='workout_events'), false),
+         'ACİL: RLS kapalı — kullanıcılar birbirinin antrenman verisini görebilir'
+  union all
+  select 4, 'Analitik', 'insert politikası with check içeriyor',
+         exists (select 1 from pg_policies
+                  where tablename='workout_events' and cmd='INSERT'
+                    and with_check like '%auth.uid()%'),
+         'kullanıcı başkasının adına olay yazabilir'
+
+  -- 5) Arama indeksleri
+  union all
+  select 5, 'Arama', 'english_name indeksi',
          exists (select 1 from pg_indexes where indexname = 'idx_exercises_english_name'),
          'isim araması yavaş çalışır'
   union all
-  select 4, 'Arama', 'aliases GIN indeksi',
+  select 5, 'Arama', 'aliases GIN indeksi',
          exists (select 1 from pg_indexes where indexname = 'idx_exercises_aliases'),
          'alias araması yavaş çalışır'
 )

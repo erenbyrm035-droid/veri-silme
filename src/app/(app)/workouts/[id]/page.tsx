@@ -95,6 +95,8 @@ export default async function WorkoutDetailPage({
           exercises={data.exercises}
           initialSets={data.sets}
           overview={data.overview}
+          xpRules={data.xpRules}
+          priorVolume={data.priorVolume}
           isPremium={isPremium}
         />
       ) : (

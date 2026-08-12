@@ -14,7 +14,9 @@ import { WorkoutOverview } from "@/components/workout/WorkoutOverview";
 import { ExerciseMediaPanel } from "@/components/workout/ExerciseMediaPanel";
 import { SetTracker, type SetDraft } from "@/components/workout/SetTracker";
 import { displayName } from "@/lib/exercises/display";
-import { estimate1RM } from "@/lib/workout/engine";
+import { estimate1RM, computeTotals } from "@/lib/workout/engine";
+import { projectWorkoutXp, type XpRules } from "@/lib/gamification/projection";
+import { trackWorkoutEvent } from "@/lib/workout/events";
 import type { EngineExercise } from "@/lib/workout/session-data";
 import type { WorkoutOverview as Overview } from "@/lib/workout/engine";
 import type { Workout, WorkoutSet } from "@/lib/database.types";
@@ -40,12 +42,16 @@ export function WorkoutEngine({
   exercises,
   initialSets,
   overview,
+  xpRules,
+  priorVolume,
   isPremium = false,
 }: {
   workout: Workout;
   exercises: EngineExercise[];
   initialSets: WorkoutSet[];
   overview: Overview;
+  xpRules: XpRules;
+  priorVolume: number;
   isPremium?: boolean;
 }) {
   const router = useRouter();
@@ -58,6 +64,7 @@ export function WorkoutEngine({
   const [busy, setBusy] = React.useState(false);
   const [restSeconds, setRestSeconds] = React.useState<number | null>(null);
   const [pr, setPr] = React.useState<string | null>(null);
+  const [prCount, setPrCount] = React.useState(0);
   const [finished, setFinished] = React.useState(workout.status === "completed");
 
   const voice = useVoiceCoach({ premium: isPremium });
@@ -79,6 +86,19 @@ export function WorkoutEngine({
   React.useEffect(() => {
     if (started) localStorage.setItem(LS_KEY(workout.id), String(exIndex));
   }, [exIndex, started, workout.id]);
+
+  // CANLI XP — veritabanının kullandığı formülün aynısı (bkz. projection.ts).
+  // Gösterilen sayı, antrenman bitince gerçekten yatan sayıdır.
+  const xp = React.useMemo(() => {
+    const totals = computeTotals(sets as unknown as Parameters<typeof computeTotals>[0], exercises);
+    return projectWorkoutXp({
+      workoutVolume: totals.totalVolume,
+      priorVolume,
+      newPrCount: prCount,
+      hasCompletedSet: totals.totalSets > 0,
+      rules: xpRules,
+    });
+  }, [sets, exercises, priorVolume, prCount, xpRules]);
 
   const aktifEx = exercises[exIndex];
   const exSets = React.useMemo(
@@ -123,6 +143,10 @@ export function WorkoutEngine({
     startedAt.current ??= Date.now();
     setDraft({ reps: "", weight: "", rir: null, rpe: null });
     voice.speak(VOICE_LINES.setLogged(hedef?.set_order ?? exSets.length + 1, displayName(aktifEx)));
+    void trackWorkoutEvent({ event: "set_completed", workoutId: workout.id, exerciseId: aktifEx.id,
+      payload: { reps, weight, rir: draft.rir, rpe: draft.rpe, set_order: hedef?.set_order ?? null } });
+    void trackWorkoutEvent({ event: "rest_started", workoutId: workout.id, exerciseId: aktifEx.id,
+      payload: { seconds: aktifEx.restSec } });
     setRestSeconds(aktifEx.restSec);
     if (weight && reps) void checkPR(aktifEx, weight, reps);
     setBusy(false);
@@ -144,6 +168,9 @@ export function WorkoutEngine({
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,exercise_name" });
       const ad = displayName(ex);
+      setPrCount((c) => c + 1);
+      void trackWorkoutEvent({ event: "pr_achieved", workoutId: workout.id, exerciseId: ex.id,
+        payload: { weight: w, reps: r, est_1rm: e1rm } });
       setPr(`${ad} · ${w} kg × ${r}`);
       voice.speak(VOICE_LINES.prHit(ad), { interrupt: true });
       setTimeout(() => setPr(null), 6000);
@@ -160,6 +187,8 @@ export function WorkoutEngine({
       ...(minutes ? { duration_min: minutes } : {}),
     }).eq("id", workout.id);
     localStorage.removeItem(LS_KEY(workout.id));
+    void trackWorkoutEvent({ event: "workout_completed", workoutId: workout.id,
+      payload: { minutes, xp: xp.total, prs: prCount } });
     if (minutes) voice.speak(VOICE_LINES.workoutDone(minutes), { interrupt: true });
     await syncMyGamification();
     router.refresh();
@@ -172,7 +201,11 @@ export function WorkoutEngine({
         title={workout.title}
         overview={overview}
         exercises={exercises}
-        onStart={() => setStarted(true)}
+        onStart={() => {
+          setStarted(true);
+          void trackWorkoutEvent({ event: "workout_started", workoutId: workout.id,
+            payload: { planned_sets: overview.totalSets, exercises: overview.exerciseCount } });
+        }}
       />
     );
   }
@@ -209,6 +242,28 @@ export function WorkoutEngine({
           enabled={voice.enabled} provider={voice.provider} isPremium={isPremium}
           onToggle={voice.toggle} onProvider={voice.setProvider}
         />
+      )}
+
+      {/* CANLI XP — set tamamladıkça artar. Gösterilen sayı, bitişte
+          gerçekten yatan sayının aynısı (aynı formül, bkz. projection.ts). */}
+      {xp.total > 0 && (
+        <div className="flex items-center justify-between rounded-xl border border-brand/25 bg-brand/5 px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] text-fg-muted">Bu antrenmandan kazanacaksın</p>
+            <p className="truncate text-[11px] text-fg-muted">
+              {xp.parts.map((p) => `${p.label} +${p.xp}`).join(" · ")}
+            </p>
+          </div>
+          <motion.span
+            key={xp.total}
+            initial={{ scale: 1.25 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.25 }}
+            className="shrink-0 text-lg font-black text-brand"
+          >
+            +{xp.total} XP
+          </motion.span>
+        </div>
       )}
 
       {/* Egzersizler arası gezinme */}
@@ -267,7 +322,10 @@ export function WorkoutEngine({
         <RestTimer
           key={`${aktifEx.id}-${sets.filter((s) => s.completed).length}`}
           seconds={restSeconds}
-          onClose={() => setRestSeconds(null)}
+          onClose={() => {
+            void trackWorkoutEvent({ event: "rest_skipped", workoutId: workout.id, exerciseId: aktifEx.id });
+            setRestSeconds(null);
+          }}
           onSpeak={voice.speak}
         />
       )}

@@ -51,6 +51,13 @@ function toDefaults(ex?: Exercise | null): ExerciseFormValues {
     tags: ex?.tags ?? [],
     calories: ex?.calories ?? null,
     movement_type: ex?.movement_type ?? "",
+    english_name: ex?.english_name ?? "",
+    aliases: ex?.aliases ?? [],
+    video_slug: ex?.video_slug ?? "",
+    rec_sets: ex?.rec_sets ?? null,
+    rec_reps: ex?.rec_reps ?? "",
+    rec_rest_sec: ex?.rec_rest_sec ?? null,
+    average_duration_sec: ex?.average_duration_sec ?? null,
     seo_title: ex?.seo_title ?? "",
     seo_description: ex?.seo_description ?? "",
     og_image_url: ex?.og_image_url ?? "",
@@ -203,6 +210,35 @@ export function ExerciseForm({
               <div>
                 <Label>Kalori (yaklaşık)</Label>
                 <Input type="number" {...register("calories")} placeholder="0" />
+              </div>
+              {/* GÖSTERİLEN İSİM — arayüz her yerde bunu gösteriyor.
+                  `name` yalnızca veritabanı iç anahtarı. */}
+              <div>
+                <Label>Standart İngilizce Ad (gösterilen isim)</Label>
+                <Input {...register("english_name")} placeholder="Romanian Deadlift" />
+              </div>
+              <div>
+                <Label>Video dosya adı (slug)</Label>
+                <Input {...register("video_slug")} placeholder="romanian-deadlift" />
+              </div>
+              {/* WORKOUT ENGINE bu üç alanı okuyor: hedef tekrar aralığı
+                  progressive overload önerisini, dinlenme süresi sayacı,
+                  ortalama süre ise antrenman süresi tahminini belirliyor. */}
+              <div>
+                <Label>Önerilen Set</Label>
+                <Input type="number" {...register("rec_sets")} placeholder="3" />
+              </div>
+              <div>
+                <Label>Önerilen Tekrar (aralık)</Label>
+                <Input {...register("rec_reps")} placeholder="8-12" />
+              </div>
+              <div>
+                <Label>Dinlenme (sn)</Label>
+                <Input type="number" {...register("rec_rest_sec")} placeholder="90" />
+              </div>
+              <div>
+                <Label>Ortalama Set Süresi (sn)</Label>
+                <Input type="number" {...register("average_duration_sec")} placeholder="45" />
               </div>
               <div>
                 <Label>Durum</Label>

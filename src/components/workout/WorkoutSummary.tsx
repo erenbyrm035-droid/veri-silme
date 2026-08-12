@@ -1,6 +1,7 @@
 import { Trophy, Clock, Flame, Layers, Repeat, Dumbbell, TrendingUp, TrendingDown, Sparkles, HeartPulse } from "lucide-react";
 import type { WorkoutSummaryData } from "@/lib/workout/summary";
 import type { AnalysisResult } from "@/lib/workout/ai-analysis";
+import { ShareWorkout } from "./ShareWorkout";
 
 // ============================================================================
 // Antrenman sonu özeti — sunucu bileşeni (istemci JS'i yok).
@@ -117,6 +118,9 @@ export function WorkoutSummary({
         </div>
       )}
 
+      {/* Paylaşım — metin özet rakamlarından üretilir, kullanıcı düzenleyebilir */}
+      <ShareWorkout defaultText={shareText(data)} />
+
       {/* AI yoksa bulgular yine gösterilir — veri kaybolmaz */}
       {!analysis?.text && data.facts.length > 0 && (
         <div className="card space-y-1.5">
@@ -130,6 +134,17 @@ export function WorkoutSummary({
       )}
     </div>
   );
+}
+
+/** Paylaşım metni — abartı yok, gerçek rakamlar. */
+function shareText(d: WorkoutSummaryData): string {
+  const p: string[] = [`${d.workout.title} tamamlandı.`];
+  const t = d.totals;
+  p.push(`${t.exerciseCount} hareket · ${t.totalSets} set · ${t.totalReps} tekrar`);
+  if (t.totalVolume > 0) p.push(`Toplam hacim: ${t.totalVolume.toLocaleString("tr-TR")} kg`);
+  if (d.durationMin) p.push(`Süre: ${d.durationMin} dk`);
+  for (const pr of d.prs) p.push(`Yeni rekor: ${pr.exerciseName} ${pr.weightKg} kg × ${pr.reps}`);
+  return p.join("\n");
 }
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {

@@ -6,6 +6,7 @@ import {
   type SetLike, type ExerciseLike, type WorkoutOverview, type OverloadSuggestion,
   type PreviousPerformance,
 } from "./engine";
+import { DEFAULT_XP_RULES, type XpRules } from "@/lib/gamification/projection";
 import type { ExerciseMediaSet, WorkoutSet } from "@/lib/database.types";
 
 // ============================================================================
@@ -40,6 +41,10 @@ export interface WorkoutSessionData {
   sets: WorkoutSet[];
   exercises: EngineExercise[];
   overview: WorkoutOverview;
+  /** Canlı XP tahmini için — admin panelinden değiştirilebilen kurallar. */
+  xpRules: XpRules;
+  /** Kullanıcının BU antrenman hariç tüm zamanlardaki hacmi (kümülatif eşik). */
+  priorVolume: number;
 }
 
 /** Egzersiz listesinden gereken sütunlar — `select *` yerine dar seçim. */
@@ -66,14 +71,16 @@ export async function getWorkoutSessionData(
   const exerciseIds = [...new Set(sets.map((s) => s.exercise_id).filter((x): x is string => !!x))];
 
   if (exerciseIds.length === 0) {
-    return { sets, exercises: [], overview: buildOverview([], []) };
+    return { sets, exercises: [], overview: buildOverview([], []),
+             xpRules: DEFAULT_XP_RULES, priorVolume: 0 };
   }
 
   const gender = (profile?.gender as "male" | "female" | null) ?? null;
   const weightKg = (profile?.weight_kg as number | null) ?? null;
 
   // Egzersizler + medyaları + geçmiş setler — üçü paralel.
-  const [{ data: exRows }, { data: mediaRows }, { data: histRows }] = await Promise.all([
+  const [{ data: exRows }, { data: mediaRows }, { data: histRows }, { data: ruleRows }, priorVolume] =
+    await Promise.all([
     supabase.from("exercises").select(EX_COLS).in("id", exerciseIds),
     supabase.from("exercise_media_set").select("*").in("exercise_id", exerciseIds),
     // BU antrenman HARİÇ, aynı egzersizlerin tamamlanmış setleri (yeniden eskiye).
@@ -87,7 +94,22 @@ export async function getWorkoutSessionData(
       .eq("workouts.user_id", userId)
       .order("created_at", { ascending: false })
       .limit(400),
+    // XP kuralları admin panelinden değiştirilebiliyor; sabit varsaymak,
+    // kullanıcıya yanlış tahmin göstermek olurdu.
+    supabase.from("xp_rules").select("event_key, xp, enabled")
+      .in("event_key", ["workout_completed", "volume_1000kg", "new_pr"]),
+    fetchPriorVolume(supabase, userId, workoutId),
   ]);
+
+  const ruleMap = new Map(
+    ((ruleRows ?? []) as { event_key: string; xp: number; enabled: boolean }[])
+      .filter((r) => r.enabled).map((r) => [r.event_key, Number(r.xp)])
+  );
+  const xpRules: XpRules = {
+    workout: ruleMap.get("workout_completed") ?? DEFAULT_XP_RULES.workout,
+    volume: ruleMap.get("volume_1000kg") ?? DEFAULT_XP_RULES.volume,
+    pr: ruleMap.get("new_pr") ?? DEFAULT_XP_RULES.pr,
+  };
 
   const mediaByEx = new Map(
     ((mediaRows ?? []) as ExerciseMediaSet[]).map((m) => [m.exercise_id, m])
@@ -135,7 +157,32 @@ export async function getWorkoutSessionData(
     sets,
     exercises,
     overview: buildOverview(sets as unknown as SetLike[], exercises, { weightKg, activity: "strength" }),
+    xpRules,
+    priorVolume,
   };
+}
+
+/**
+ * Kullanıcının BU antrenman hariç tüm zamanlardaki toplam hacmi.
+ *
+ * Hacim XP'si kümülatif eşiğe bağlı (`floor(toplam/1000) × 5`), bu yüzden
+ * bir antrenmanın katkısı önceki toplama göre değişir. Bunu bilmeden yapılan
+ * tahmin yanlış olurdu.
+ */
+async function fetchPriorVolume(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  workoutId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from("workout_sets")
+    .select("reps, weight_kg, workouts!inner(user_id, status)")
+    .eq("completed", true)
+    .eq("workouts.user_id", userId)
+    .eq("workouts.status", "completed")
+    .neq("workout_id", workoutId);
+  return ((data ?? []) as unknown as { reps: number | null; weight_kg: number | null }[])
+    .reduce((a, s) => a + (s.weight_kg ?? 0) * (s.reps ?? 0), 0);
 }
 
 /**

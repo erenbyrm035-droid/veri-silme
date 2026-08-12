@@ -70,6 +70,15 @@ function toRow(v: ExerciseParsed) {
     tags: v.tags ?? [],
     calories: v.calories ?? null,
     movement_type: empty(v.movement_type),
+    // Gösterilen isim + arama alias'ları (bkz. lib/exercises/display.ts)
+    english_name: empty(v.english_name),
+    aliases: v.aliases ?? [],
+    video_slug: empty(v.video_slug),
+    // Workout Engine'in okuduğu alanlar
+    rec_sets: v.rec_sets ?? null,
+    rec_reps: empty(v.rec_reps),
+    rec_rest_sec: v.rec_rest_sec ?? null,
+    average_duration_sec: v.average_duration_sec ?? null,
     seo_title: empty(v.seo_title),
     seo_description: empty(v.seo_description),
     og_image_url: empty(v.og_image_url),

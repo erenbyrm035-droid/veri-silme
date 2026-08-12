@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Check, History, Lightbulb } from "lucide-react";
+import { Check, History, Lightbulb, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EngineExercise } from "@/lib/workout/session-data";
 import type { WorkoutSet } from "@/lib/database.types";
@@ -29,6 +29,7 @@ export function SetTracker({
   draft,
   onDraft,
   onComplete,
+  onSkip,
   busy,
 }: {
   exercise: EngineExercise;
@@ -39,6 +40,7 @@ export function SetTracker({
   draft: SetDraft;
   onDraft: (d: SetDraft) => void;
   onComplete: () => void;
+  onSkip: () => void;
   busy: boolean;
 }) {
   const aktif = sets[activeIndex];
@@ -125,14 +127,26 @@ export function SetTracker({
           />
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={onComplete}
-          disabled={busy || !draft.reps}
-          className="btn-primary h-14 w-full text-base disabled:opacity-50"
-        >
-          <Check size={20} /> Seti Tamamla
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={onComplete}
+            disabled={busy || !draft.reps}
+            className="btn-primary h-14 flex-1 text-base disabled:opacity-50"
+          >
+            <Check size={20} /> Seti Tamamla
+          </motion.button>
+          {/* Atlama seti SİLMEZ, tamamlanmamış bırakır — kullanıcı geri
+              dönüp doldurabilir, plan bilgisi de korunur. */}
+          <button
+            onClick={onSkip}
+            disabled={busy}
+            className="btn-ghost h-14 px-4 text-sm disabled:opacity-50"
+            aria-label="Bu seti atla"
+          >
+            <SkipForward size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );

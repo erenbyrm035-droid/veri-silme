@@ -63,6 +63,7 @@ export function WorkoutEngine({
   const [draft, setDraft] = React.useState<SetDraft>({ reps: "", weight: "", rir: null, rpe: null });
   const [busy, setBusy] = React.useState(false);
   const [restSeconds, setRestSeconds] = React.useState<number | null>(null);
+  const [restNote, setRestNote] = React.useState<string | null>(null);
   const [pr, setPr] = React.useState<string | null>(null);
   const [prCount, setPrCount] = React.useState(0);
   const [finished, setFinished] = React.useState(workout.status === "completed");
@@ -86,6 +87,19 @@ export function WorkoutEngine({
   React.useEffect(() => {
     if (started) localStorage.setItem(LS_KEY(workout.id), String(exIndex));
   }, [exIndex, started, workout.id]);
+
+  // Hangi harekete geçildiği — "kullanıcılar hangi harekette bırakıyor"
+  // sorusunun cevabı bu olaydan çıkıyor.
+  const izlenenEx = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const ex = exercises[exIndex];
+    if (!started || !ex || izlenenEx.current === ex.id) return;
+    izlenenEx.current = ex.id;
+    void trackWorkoutEvent({
+      event: "exercise_started", workoutId: workout.id, exerciseId: ex.id,
+      payload: { position: exIndex + 1, total: exercises.length },
+    });
+  }, [exIndex, started, exercises, workout.id]);
 
   // CANLI XP — veritabanının kullandığı formülün aynısı (bkz. projection.ts).
   // Gösterilen sayı, antrenman bitince gerçekten yatan sayıdır.
@@ -145,11 +159,34 @@ export function WorkoutEngine({
     voice.speak(VOICE_LINES.setLogged(hedef?.set_order ?? exSets.length + 1, displayName(aktifEx)));
     void trackWorkoutEvent({ event: "set_completed", workoutId: workout.id, exerciseId: aktifEx.id,
       payload: { reps, weight, rir: draft.rir, rpe: draft.rpe, set_order: hedef?.set_order ?? null } });
+    // UYARLANABİLİR DİNLENME: RIR 0-1 demek kullanıcı sınırda demek. Aynı
+    // dinlenmeyle devam etmek bir sonraki setin form kalitesini düşürür;
+    // varsayılana 30 sn ekleniyor. RIR girilmediyse varsayılan korunur.
+    const zorlandi = draft.rir !== null && draft.rir <= 1;
+    const dinlenme = zorlandi ? aktifEx.restSec + 30 : aktifEx.restSec;
+    if (zorlandi) setRestNote(`RIR ${draft.rir} — dinlenmeni 30 sn uzattım.`);
+    else setRestNote(null);
     void trackWorkoutEvent({ event: "rest_started", workoutId: workout.id, exerciseId: aktifEx.id,
-      payload: { seconds: aktifEx.restSec } });
-    setRestSeconds(aktifEx.restSec);
+      payload: { seconds: dinlenme, adapted: zorlandi, rir: draft.rir } });
+    setRestSeconds(dinlenme);
     if (weight && reps) void checkPR(aktifEx, weight, reps);
     setBusy(false);
+  }
+
+  /** Seti atla — planlı satır tamamlanmadan bir sonrakine geçilir. */
+  async function skipSet() {
+    if (!aktifEx || busy) return;
+    const hedef = exSets[aktifSetIdx];
+    void trackWorkoutEvent({
+      event: "set_skipped", workoutId: workout.id, exerciseId: aktifEx.id,
+      payload: { set_order: hedef?.set_order ?? null },
+    });
+    // Satır SİLİNMEZ, tamamlanmamış kalır: plan bilgisi korunur ve kullanıcı
+    // isterse geri dönüp doldurabilir.
+    setDraft({ reps: "", weight: "", rir: null, rpe: null });
+    if (aktifSetIdx >= exSets.length - 1 && exIndex < exercises.length - 1) {
+      setExIndex((i) => i + 1);
+    }
   }
 
   async function checkPR(ex: EngineExercise, w: number, r: number) {
@@ -297,7 +334,16 @@ export function WorkoutEngine({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -12 }}
           transition={{ duration: 0.18 }}
-          className="grid gap-4 lg:grid-cols-2 lg:items-start"
+          // MOBİLDE KAYDIRARAK GEÇİŞ. Eşik 60px: daha düşüğü, set alanına
+          // dokunurken kazara geçişe yol açardı. Desktopta ok tuşları zaten var.
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.15}
+          onDragEnd={(_, info) => {
+            if (info.offset.x < -60 && exIndex < exercises.length - 1) setExIndex((i) => i + 1);
+            else if (info.offset.x > 60 && exIndex > 0) setExIndex((i) => i - 1);
+          }}
+          className="grid touch-pan-y gap-4 lg:grid-cols-2 lg:items-start"
         >
           <ExerciseMediaPanel exercise={aktifEx} />
           <SetTracker
@@ -307,6 +353,7 @@ export function WorkoutEngine({
             draft={draft}
             onDraft={setDraft}
             onComplete={completeSet}
+            onSkip={skipSet}
             busy={busy}
           />
         </motion.div>
@@ -316,6 +363,12 @@ export function WorkoutEngine({
         <button onClick={finishWorkout} className="btn-primary w-full">
           <Flag size={18} /> Antrenmanı Tamamla
         </button>
+      )}
+
+      {restSeconds !== null && restNote && (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/90">
+          {restNote}
+        </p>
       )}
 
       {restSeconds !== null && (

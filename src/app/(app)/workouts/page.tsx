@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { VolumeChart } from "@/components/workout/VolumeChart";
 import { getWeeklyVolume, getTopPRs } from "@/lib/data/workouts";
 import { formatShortDate } from "@/lib/utils";
-import { Plus, Dumbbell, CheckCircle2, Clock, Trophy, BarChart3, LayoutGrid, ChevronRight } from "lucide-react";
+import { Plus, Dumbbell, CheckCircle2, Clock, Trophy, BarChart3, LayoutGrid, ChevronRight, Play } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,8 @@ export default async function WorkoutsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // En son YARIM KALAN antrenman: tamamlanmamış ama en az bir seti bitmiş.
+  // Ayrı bir sorgu değil; aşağıdaki listeden türetiliyor.
   const [{ data: workouts }, volume, prs] = await Promise.all([
     supabase
       .from("workouts")
@@ -24,6 +26,29 @@ export default async function WorkoutsPage() {
     getWeeklyVolume(user!.id),
     getTopPRs(user!.id),
   ]);
+
+  // Yarım kalan antrenman: tamamlanmamış, planlı seti olan en yeni kayıt.
+  const aday = (workouts ?? []).find((w) => w.status !== "completed");
+  const adayToplam = aday
+    ? ((aday.workout_sets as unknown as { count: number }[])?.[0]?.count ?? 0)
+    : 0;
+
+  // Tamamlanan set sayısı listede yok; yalnızca ADAY VARSA tek küçük sorgu.
+  // Sabit bir sayı göstermek ("0/12") kullanıcıyı yanıltırdı.
+  let devamEden: { id: string; title: string; toplam: number; tamamlanan: number } | null = null;
+  if (aday && adayToplam > 0) {
+    const { count } = await supabase
+      .from("workout_sets")
+      .select("id", { count: "exact", head: true })
+      .eq("workout_id", aday.id)
+      .eq("completed", true);
+    devamEden = {
+      id: aday.id as string,
+      title: aday.title as string,
+      toplam: adayToplam,
+      tamamlanan: count ?? 0,
+    };
+  }
 
   return (
     <div className="space-y-6">
@@ -41,6 +66,28 @@ export default async function WorkoutsPage() {
           </Link>
         </div>
       </header>
+
+      {/* YARIM KALAN ANTRENMAN — kullanıcı uygulamadan çıkıp döndüğünde
+          kaldığı yeri bulmalı. İlerleme zaten workout_sets'te kalıcı;
+          burada yalnızca görünür kılıyoruz. */}
+      {devamEden && (
+        <Link href={`/workouts/${devamEden.id}`}>
+          <Card className="card-hover flex items-center justify-between border-brand/40 bg-brand/5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
+                <Play size={20} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">Antrenmanına devam et</p>
+                <p className="truncate text-sm text-fg-muted">
+                  {devamEden.title} · {devamEden.tamamlanan}/{devamEden.toplam} set tamamlandı
+                </p>
+              </div>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-brand">Devam →</span>
+          </Card>
+        </Link>
+      )}
 
       {/* Hazır programlar girişi */}
       <div className="grid gap-3 sm:grid-cols-2">

@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, RotateCcw, Clock, Flame, Dumbbell, Layers, Target, TrendingUp } from "lucide-react";
+import * as React from "react";
+import { Play, RotateCcw, Clock, Flame, Dumbbell, Layers, Target, TrendingUp, Users, Loader2 } from "lucide-react";
+import { startFriendParty } from "@/lib/social/actions";
 import { displayName } from "@/lib/exercises/display";
 import { DIFFICULTY_LABELS } from "@/lib/constants";
 import type { WorkoutOverview as Overview } from "@/lib/workout/engine";
@@ -26,6 +28,22 @@ export function WorkoutOverview({
 }) {
   const devam = overview.started;
   const kalan = overview.totalSets - overview.completedSets;
+
+  // PARTİ BAŞLATMA BURADA, özet ekranında — antrenmana BAŞLARKEN anlamlı.
+  // Bitirdikten sonra parti açmak anlamsız olurdu; oradaki seçenek
+  // "arkadaşlarına KATIL" (bkz. JoinParty).
+  const [partiBusy, setPartiBusy] = React.useState(false);
+  const [partiHata, setPartiHata] = React.useState<string | null>(null);
+  const [partiAcik, setPartiAcik] = React.useState(false);
+
+  async function partiBaslat() {
+    setPartiBusy(true);
+    setPartiHata(null);
+    const res = await startFriendParty({ title, activity: "strength" });
+    setPartiBusy(false);
+    if (res.ok) setPartiAcik(true);
+    else setPartiHata(res.error ?? "Parti başlatılamadı.");
+  }
 
   return (
     <div className="space-y-4">
@@ -72,6 +90,18 @@ export function WorkoutOverview({
           {devam ? <RotateCcw size={18} /> : <Play size={18} />}
           {devam ? "Devam Et" : "Antrenmanı Başlat"}
         </button>
+
+        {partiAcik ? (
+          <p className="text-center text-xs text-brand">
+            Parti açıldı — arkadaşların akıştan katılabilir.
+          </p>
+        ) : (
+          <button onClick={partiBaslat} disabled={partiBusy} className="btn-ghost w-full text-sm disabled:opacity-50">
+            {partiBusy ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />}
+            Arkadaşlarınla birlikte antren
+          </button>
+        )}
+        {partiHata && <p className="text-center text-xs text-coral">{partiHata}</p>}
       </div>
 
       {/* Bugünün önerileri — her egzersiz için geçmişten hesaplanmış */}

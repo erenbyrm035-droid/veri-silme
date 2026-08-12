@@ -2,6 +2,8 @@ import { Trophy, Clock, Flame, Layers, Repeat, Dumbbell, TrendingUp, TrendingDow
 import type { WorkoutSummaryData } from "@/lib/workout/summary";
 import type { AnalysisResult } from "@/lib/workout/ai-analysis";
 import { ShareWorkout } from "./ShareWorkout";
+import { JoinParty } from "./JoinParty";
+import type { LiveSessionView } from "@/lib/social/types";
 
 // ============================================================================
 // Antrenman sonu özeti — sunucu bileşeni (istemci JS'i yok).
@@ -14,9 +16,12 @@ import { ShareWorkout } from "./ShareWorkout";
 export function WorkoutSummary({
   data,
   analysis,
+  party = null,
 }: {
   data: WorkoutSummaryData;
   analysis: AnalysisResult | null;
+  /** Arkadaşların açık partisi — yoksa kart gösterilmez. */
+  party?: LiveSessionView | null;
 }) {
   const { totals, comparison, prs } = data;
   const artis = comparison.volumeChangePct;
@@ -116,6 +121,17 @@ export function WorkoutSummary({
             <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">{data.recoveryNote}</p>
           </div>
         </div>
+      )}
+
+      {/* Arkadaşların hâlâ çalışıyorsa katıl */}
+      {party && party.status === "live" && (
+        <JoinParty
+          sessionId={party.id}
+          title={party.title}
+          hostName={party.host.name}
+          participants={party.participants.length}
+          alreadyIn={party.im_in}
+        />
       )}
 
       {/* Paylaşım — metin özet rakamlarından üretilir, kullanıcı düzenleyebilir */}

@@ -53,8 +53,20 @@ const SAFE: SafetyResult = {
 const EMERGENCY_PATTERNS: { re: RegExp; flag: string }[] = [
   { re: /göğs[üu]m(de)?\s+(ağrı|acı|sıkış|baskı)|göğüs ağrısı/i, flag: "chest_pain" },
   { re: /nefes\s*(al[ae]mıyor|darlığı|yetmiyor)|boğuluyor/i,      flag: "dyspnea" },
-  { re: /bayıl(dım|ıyorum)|bilincimi kaybet|kendimden geç/i,       flag: "syncope" },
-  { re: /(bir taraf|yarım|tek taraf).{0,20}(uyuş|güç kayb|felç)|konuşmam bozul|ağzım kay/i, flag: "stroke_signs" },
+  // Bayılma/presenkop: GELECEK ZAMAN da yakalanmalı ("bayılacağım"). Baş
+  // dönmesi ve göz kararması, egzersiz sırasında durup kontrol etmeyi
+  // gerektiren erken uyarılardır; bunlar eksikti.
+  { re: /bayıl(dım|ıyorum|acağım|mak üzere)|bilincimi kaybet|kendimden geç|baş[ıi]m dön(üyor|dü)|gözüm karar/i, flag: "syncope" },
+  // İnme belirtileri: peltek/dolaşan konuşma da bu gruba girer.
+  // "sol/sağ" da taraf belirtir. Egzersiz sırasında TEK TARAFLI uyuşma veya
+  // güç kaybı (özellikle sol kolda) kardiyak/nörolojik uyarı işaretidir;
+  // yalnızca "bir taraf|yarım|tek taraf" aramak bunu kaçırıyordu.
+  // TARAF + BELİRTİ, aradaki ek çekiminden bağımsız. Türkçe'de kök yumuşuyor
+  // ("bacak" → "bacağımda"), bu yüzden kelime kelime eşleştirme kaçırıyordu;
+  // mesafe tabanlı arama ek çekimine takılmaz.
+  // Egzersiz sırasında tek taraflı uyuşma/güç kaybı (özellikle sol kolda)
+  // kardiyak veya nörolojik uyarı işaretidir.
+  { re: /(bir taraf|yarım|tek taraf|sol|sağ).{0,25}(uyuş|güç kayb|felç)|konuşmam (bozul|peltek)|peltekleş|dilim dolaş|ağzım kay/i, flag: "stroke_signs" },
   { re: /kanl[ıi] (kusma|dışkı)|kan kusuyor/i,                     flag: "bleeding" },
   { re: /intihar|kendime zarar|yaşamak istemiyorum/i,              flag: "self_harm" },
 ];

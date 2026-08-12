@@ -13,6 +13,7 @@ import { VoiceToggle } from "@/components/workout/VoiceToggle";
 import { WorkoutOverview } from "@/components/workout/WorkoutOverview";
 import { ExerciseMediaPanel } from "@/components/workout/ExerciseMediaPanel";
 import { SetTracker, type SetDraft } from "@/components/workout/SetTracker";
+import { WorkoutCoachPanel } from "@/components/workout/WorkoutCoachPanel";
 import { displayName } from "@/lib/exercises/display";
 import { estimate1RM, computeTotals } from "@/lib/workout/engine";
 import { projectWorkoutXp, type XpRules } from "@/lib/gamification/projection";
@@ -120,6 +121,29 @@ export function WorkoutEngine({
     [sets, aktifEx?.id]
   );
   const aktifSetIdx = Math.max(0, exSets.findIndex((s) => !s.completed));
+
+  // Koç paneline verilecek O ANKİ durum. Bağlam olmadan AI genel geçer
+  // tavsiye verir; bununla "geçen sefer 30×10 yaptın, 32.5 dene" diyebilir.
+  const sonSet = [...sets].reverse().find((s) => s.completed);
+  const coachContext = React.useMemo(() => {
+    const totals = computeTotals(sets as unknown as Parameters<typeof computeTotals>[0], exercises);
+    return {
+      exerciseName: aktifEx ? displayName(aktifEx) : undefined,
+      muscleGroup: aktifEx?.muscle_group,
+      equipment: aktifEx?.equipment ?? null,
+      setNumber: exSets[aktifSetIdx]?.set_order ?? exSets.length + 1,
+      totalSets: exSets.length,
+      targetReps: exSets[aktifSetIdx]?.target_reps ?? aktifEx?.suggestion.reps ?? null,
+      suggestion: aktifEx?.suggestion.reason,
+      previous: aktifEx?.previous
+        ? aktifEx.previous.sets.map((s) => `${s.weight_kg ? `${s.weight_kg}kg × ` : ""}${s.reps}`).join(", ")
+        : undefined,
+      lastRir: sonSet?.rir ?? null,
+      lastRpe: sonSet?.rpe ?? null,
+      completedSets: totals.totalSets,
+      totalVolume: totals.totalVolume,
+    };
+  }, [aktifEx, exSets, aktifSetIdx, sets, exercises, sonSet]);
 
   async function completeSet() {
     if (!aktifEx || busy) return;
@@ -358,6 +382,10 @@ export function WorkoutEngine({
           />
         </motion.div>
       </AnimatePresence>
+
+      {/* AI koç — mobilde kapalı başlar, desktopta iki sütunun altında.
+          Şartname madde 14: "Alt: AI Coach". */}
+      <WorkoutCoachPanel context={coachContext} />
 
       {(tumSetlerBitti || sets.some((s) => s.completed)) && (
         <button onClick={finishWorkout} className="btn-primary w-full">

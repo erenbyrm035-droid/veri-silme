@@ -7,6 +7,8 @@ import { getWorkoutSessionData } from "@/lib/workout/session-data";
 import { getWorkoutSummary } from "@/lib/workout/summary";
 import { analyzeWorkout } from "@/lib/workout/ai-analysis";
 import { WorkoutSummary } from "@/components/workout/WorkoutSummary";
+import { getFriendParty } from "@/lib/social/queries";
+import { createAdminClient } from "@/lib/supabase/server";
 import { formatShortDate } from "@/lib/utils";
 import { hasFeature } from "@/lib/premium/entitlements";
 import { ArrowLeft } from "lucide-react";
@@ -55,6 +57,9 @@ export default async function WorkoutDetailPage({
     const summary = await getWorkoutSummary(id, user!.id);
     if (summary) {
       const analysis = await analyzeWorkout(summary).catch(() => null);
+      // Arkadaşların açık partisi varsa özet ekranında katılma seçeneği çıkar.
+      // Yoksa kart hiç gösterilmez — boş kutu ekranı kirletir.
+      const party = await getFriendParty(createAdminClient(), user!.id).catch(() => null);
       return (
         <div className="space-y-6">
           <Link
@@ -69,7 +74,7 @@ export default async function WorkoutDetailPage({
               {formatShortDate(workout.workout_date)} · tamamlandı
             </p>
           </header>
-          <WorkoutSummary data={summary} analysis={analysis} />
+          <WorkoutSummary data={summary} analysis={analysis} party={party} />
         </div>
       );
     }

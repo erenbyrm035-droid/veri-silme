@@ -3,6 +3,7 @@ import { Activity, Database, Bot, HardDrive, AlertTriangle, CheckCircle2, XCircl
 import { getAdminContext } from "@/features/admin/features/users/guard";
 import { getSystemHealth } from "@/features/admin/features/system/queries";
 import { Card } from "@/features/admin/components/ui/card";
+import { ClearCacheCard } from "@/features/admin/features/system/cache-button";
 import { Badge } from "@/features/admin/components/ui/badge";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,8 @@ export default async function SystemPage() {
         <h1 className="text-2xl font-bold tracking-tight">Sistem Sağlığı</h1>
         <p className="mt-1 text-sm text-fg-muted">API durumu, AI kullanımı, depolama ve hata logları.</p>
       </div>
+
+      <ClearCacheCard />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat icon={Database} label="Veritabanı" value={h.db.ok ? "Çevrimiçi" : "Hata"} hint={`${h.db.latencyMs}ms yanıt`} />

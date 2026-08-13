@@ -32,16 +32,35 @@ export const CATALOG_TAGS = {
 /** Katalog için makul tavan: içerik değişince tag ile zaten temizlenir. */
 const ONE_HOUR = 3600;
 
+/**
+ * HATA YUTMA YASAK — bu fonksiyonlar ÖNBELLEĞE ALINIYOR.
+ *
+ * Eskiden hepsi `return (data ?? []) as T[]` yapıyordu: sorgu hata verirse
+ * `data` null gelir, fonksiyon sessizce BOŞ DİZİ döndürür ve `unstable_cache`
+ * o boş diziyi 1 SAAT saklardı. Yani anlık bir hata (migration sırasında tablo
+ * kilidi, ağ kesintisi, yetki sorunu) sayfayı bir saat boyunca "0 kayıt"
+ * gösterir hale getiriyordu — üstelik hiçbir yerde iz bırakmadan.
+ *
+ * Şimdi hata THROW ediliyor. `unstable_cache` throw eden bir çağrının
+ * sonucunu önbelleğe ALMAZ; sayfa o an hata gösterir (`error.tsx` devrede) ve
+ * bir sonraki istekte kendiliğinden düzelir. Geçici hata kalıcı boşluğa
+ * dönüşemez.
+ */
+function ensure<T>(data: T[] | null, error: { message: string } | null, ne: string): T[] {
+  if (error) throw new Error(`Katalog yüklenemedi (${ne}): ${error.message}`);
+  return data ?? [];
+}
+
 /** Tüm egzersizler — kütüphane listesi. */
 export const getCachedExercises = unstable_cache(
   async (): Promise<Exercise[]> => {
     const admin = createAdminClient();
-    const { data } = await admin
+    const { data, error } = await admin
       .from("exercises")
       .select("*")
       .order("muscle_group")
       .order("name");
-    return (data ?? []) as Exercise[];
+    return ensure<Exercise>(data as Exercise[] | null, error, "egzersizler");
   },
   ["catalog-exercises"],
   { tags: [CATALOG_TAGS.exercises], revalidate: ONE_HOUR }
@@ -51,8 +70,8 @@ export const getCachedExercises = unstable_cache(
 export const getCachedMuscles = unstable_cache(
   async (): Promise<Muscle[]> => {
     const admin = createAdminClient();
-    const { data } = await admin.from("muscles").select("*").order("sort_order");
-    return (data ?? []) as Muscle[];
+    const { data, error } = await admin.from("muscles").select("*").order("sort_order");
+    return ensure<Muscle>(data as Muscle[] | null, error, "kaslar");
   },
   ["catalog-muscles"],
   { tags: [CATALOG_TAGS.muscles], revalidate: ONE_HOUR }
@@ -66,11 +85,11 @@ export interface ProgramCategoryRow {
 export const getCachedProgramCategories = unstable_cache(
   async (): Promise<ProgramCategoryRow[]> => {
     const admin = createAdminClient();
-    const { data } = await admin
+    const { data, error } = await admin
       .from("program_categories")
       .select("id, slug, name, sort_order")
       .order("sort_order");
-    return (data ?? []) as ProgramCategoryRow[];
+    return ensure<ProgramCategoryRow>(data as ProgramCategoryRow[] | null, error, "program kategorileri");
   },
   ["catalog-program-categories"],
   { tags: [CATALOG_TAGS.programs], revalidate: ONE_HOUR }

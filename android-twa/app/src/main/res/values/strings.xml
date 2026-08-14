@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DİKKAT: assetStatements içindeki tırnaklar ters bölü ile kaçırılmalı
+    (\"), Android string kaynağı kuralı. Kaçırmazsan derleme hatası alırsın.
+
+    site değeri sonunda EĞİK ÇİZGİ ile bitmeli: "https://veri-silme.vercel.app/"
+    Chrome bunu tam olarak böyle bekliyor.
+-->
+<resources>
+    <string name="app_name">Viva AI Coach</string>
+
+    <string name="assetStatements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://veri-silme.vercel.app/\"
+            }
+        }]
+    </string>
+
+    <!-- Next 15 metadata route: src/app/manifest.ts → /manifest.webmanifest -->
+    <string name="webManifestUrl">https://veri-silme.vercel.app/manifest.webmanifest</string>
+</resources>

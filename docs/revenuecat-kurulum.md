@@ -1,5 +1,24 @@
 # RevenueCat (iOS/Android IAP) Kurulumu
 
+> ## ⚠ ANDROID İÇİN BU DOKÜMANI KULLANMA
+>
+> Android kabuğu **TWA** olarak kuruldu (bkz.
+> [`android-studio-twa-kurulum.md`](./android-studio-twa-kurulum.md)) ve Play
+> satın almalarını **RevenueCat'siz**, doğrudan Digital Goods API +
+> `/api/billing/play/verify` üzerinden işliyor
+> (`src/lib/billing/play-client.ts`).
+>
+> **Sonuç — Play Console'daki ürün kimlikleri:** TWA yolunda eşleme
+> `planForSku()` ile **birebir** yapılır
+> (`src/app/api/billing/play/verify/route.ts` → `src/lib/premium/plans.ts`
+> `playSku`). Ürünleri aşağıdaki `viva_premium_*` kalıbıyla açarsan
+> `planForSku()` `null` döner ve her satın alma **"Bilinmeyen ürün"** ile
+> reddedilir. Play'de kullanılacak kimlikler:
+> `premium_monthly`, `premium_yearly`, `premium_lifetime`.
+>
+> Aşağısı **iOS** için (ya da ileride Capacitor'a geçilirse Android için)
+> geçerlidir.
+
 Web'de iyzico kalır; **iOS/Android uygulamasında** abonelikler Apple/Google IAP
 ile satılır. RevenueCat satın almayı yönetir, webhook ile Supabase'deki premium
 durumunu günceller. Uygulamanın geri kalanı (entitlements motoru) değişmez.
@@ -23,14 +42,17 @@ getEntitlements() — mevcut motor, değişmeden çalışır
 Auto-renewable subscription + lifetime için non-consumable oluştur. Ürün
 kimliklerini şu kalıba göre adlandır (backend otomatik eşler):
 
-| Plan            | Ürün kimliği (örnek)     |
-|-----------------|--------------------------|
-| Aylık           | `viva_premium_monthly`   |
-| Yıllık          | `viva_premium_yearly`    |
-| Lifetime        | `viva_premium_lifetime`  |
+| Plan            | App Store Connect (iOS)  | Play Console (TWA — birebir) |
+|-----------------|--------------------------|------------------------------|
+| Aylık           | `viva_premium_monthly`   | `premium_monthly`            |
+| Yıllık          | `viva_premium_yearly`    | `premium_yearly`             |
+| Lifetime        | `viva_premium_lifetime`  | `premium_lifetime`           |
 
-Eşleme kuralı: id içinde `life` → lifetime, `year/annual/yil` → yıllık, aksi
-halde aylık (`src/lib/billing/revenuecat.ts:productToPlan`).
+**İki sütun neden farklı:** RevenueCat yolunda eşleme esnek — id içinde
+`life` → lifetime, `year/annual/yil` → yıllık, aksi halde aylık
+(`src/lib/billing/revenuecat.ts:productToPlan`), yani `viva_` öneki sorun
+çıkarmaz. TWA/Play yolunda ise eşleme **tam eşitlik** ile yapılır
+(`planForSku()` → `plans.ts` `playSku`); önek eklersen satın alma reddedilir.
 
 ## 2) RevenueCat panel
 

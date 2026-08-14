@@ -27,7 +27,9 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Fiyatlandırma sayfası
 - [x] Webhook mimarisi (idempotent)
 - [ ] Stripe anahtarları + `npm i stripe` + checkout tamamlama
-- [ ] Google Play Billing / Apple StoreKit makbuz doğrulama (mobil kabuk)
+- [x] Google Play Billing kodu hazır (istemci: `lib/billing/play-client.ts`,
+      sunucu doğrulaması: `/api/billing/play/verify`) — env girilince aktif
+- [ ] Apple StoreKit makbuz doğrulama (iOS kabuğu ile birlikte)
 - [ ] Gerçek fiyatların ve KDV'nin doğrulanması
 
 ## 4. Bildirimler
@@ -82,7 +84,17 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [ ] Store ekran görüntüleri (6.5"/5.5" iPhone, Android, tablet)
 - [ ] Feature graphic (1024×500) + tanıtım metni
 - [ ] Yaş sınırı / içerik derecelendirmesi
-- [ ] Mobil kabuk (Capacitor) veya native wrapper build
+- [x] Android kabuk kararı: **TWA** (Capacitor değil — yeni npm bağımlılığı
+      gerektirmiyor, Play Billing zaten Digital Goods API ile bağlı)
+- [x] TWA proje dosyaları hazır (`android-twa/`) + rehber
+      (`docs/android-studio-twa-kurulum.md`)
+- [ ] Android Studio'da projeyi oluştur + dosyaları yerleştir + imzalı AAB üret
+- [ ] Play Console'da uygulamayı aç → dahili teste yükle
+- [ ] Play App Signing SHA-256'yı `public/.well-known/assetlinks.json` içine
+      yaz + deploy (şu an `REPLACE_WITH_...` yer tutucu)
+- [ ] Play ürünleri: `premium_monthly` / `premium_yearly` / `premium_lifetime`
+- [ ] Vercel env: `ANDROID_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
+- [ ] iOS kabuk (ayrı iş — RevenueCat yolu, `docs/revenuecat-kurulum.md`)
 
 ## 11. Veri & Yedekleme
 - [x] Migration'lar (0001–0022) versiyonlanmış + `schema.sql` senkron

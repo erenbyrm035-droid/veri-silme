@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Uygulama düzeyi tema. TWA'da kullanıcı bunu neredeyse hiç görmez
+    (LauncherActivity saydam tema kullanıyor), ama manifest'teki
+    android:theme="@style/AppTheme" bir yere işaret etmek zorunda.
+
+    Platform teması seçildi (AppCompat değil): fazladan bağımlılık gerekmez,
+    sihirbazın ürettiği Theme.<ProjeAdı> isimlendirmesine de bağlı kalmaz.
+-->
+<resources>
+    <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/backgroundColor</item>
+        <item name="android:colorBackground">@color/backgroundColor</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/backgroundColor</item>
+    </style>
+</resources>

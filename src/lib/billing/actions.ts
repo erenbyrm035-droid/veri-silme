@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getBillingProvider } from "./provider";
 import type { PlanId } from "@/lib/premium/plans";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface CheckoutActionResult { ok: boolean; url?: string; error?: string; }
 
@@ -13,6 +14,8 @@ export async function startCheckout(plan: PlanId): Promise<CheckoutActionResult>
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
   if (plan === "free") return { ok: false, error: "Free plan için ödeme gerekmez." };
+  const rl = await guardAction("billing:checkout", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
 
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://veri-silme.vercel.app";
   try {
@@ -34,6 +37,8 @@ export async function cancelPremium(): Promise<{ ok: boolean; error?: string }> 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("billing:cancel", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
   try {
     const admin = createAdminClient();
     await admin.from("profiles").update({

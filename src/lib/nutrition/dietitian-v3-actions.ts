@@ -11,6 +11,7 @@ import {
   type InterviewAnswers,
   type DietPlan,
 } from "./interview";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface DietV3Result<T = undefined> { ok: boolean; error?: string; data?: T; }
 const fail = (e: string): DietV3Result<never> => ({ ok: false, error: e });
@@ -172,6 +173,8 @@ export async function answerQuestion(id: string, value: string | number | string
   const userId = await uid();
   if (!userId) return fail("Oturum bulunamadı.");
   if (!INTERVIEW_QUESTIONS.some((q) => q.id === id)) return fail("Geçersiz soru.");
+  const rl = await guardAction("diet:answer", userId, LIMITS.reaction);
+  if (!rl.ok) return fail(rl.error!);
   try {
     const admin = createAdminClient();
     const { data: row } = await admin.from("dietitian_profiles").select("answers").eq("user_id", userId).maybeSingle();
@@ -196,6 +199,8 @@ export async function answerQuestion(id: string, value: string | number | string
 export async function reopenQuestions(ids: string[]): Promise<DietV3Result> {
   const userId = await uid();
   if (!userId) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("diet:reopen", userId, LIMITS.post);
+  if (!rl.ok) return fail(rl.error!);
   try {
     const admin = createAdminClient();
     const { data: row } = await admin.from("dietitian_profiles").select("answers").eq("user_id", userId).maybeSingle();
@@ -216,6 +221,8 @@ export async function reopenQuestions(ids: string[]): Promise<DietV3Result> {
 export async function resetInterview(): Promise<DietV3Result> {
   const userId = await uid();
   if (!userId) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("diet:reset", userId, LIMITS.sensitive);
+  if (!rl.ok) return fail(rl.error!);
   try {
     const admin = createAdminClient();
     await admin.from("dietitian_profiles").upsert(
@@ -240,6 +247,8 @@ export async function toggleShoppingItem(
 ): Promise<DietV3Result<{ checked: boolean }>> {
   const userId = await uid();
   if (!userId) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("diet:shopping", userId, LIMITS.reaction);
+  if (!rl.ok) return fail(rl.error!);
   try {
     // RPC auth.uid() ile sahipliği doğruluyor → oturumlu istemci gerekli.
     const supabase = await createClient();

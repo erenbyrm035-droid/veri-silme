@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface DailyResult { ok: boolean; error?: string }
 
@@ -23,6 +24,8 @@ export async function saveDailyMetric(input: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("daily:metric", user.id, LIMITS.reaction);
+  if (!rl.ok) return { ok: false, error: rl.error };
 
   // Girdi doğrulama — makul aralıklar dışındaki değerler reddedilir.
   const steps = clamp(input.steps, 0, 200_000);

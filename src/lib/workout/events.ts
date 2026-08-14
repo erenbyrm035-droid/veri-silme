@@ -13,6 +13,14 @@ import { createClient } from "@/lib/supabase/server";
 // Bu yüzden `createClient()` (kullanıcı oturumu) kullanılıyor, admin istemci
 // DEĞİL — servis anahtarıyla yazmak RLS'i devre dışı bırakır ve bir hata
 // durumunda başka kullanıcının adına satır açılmasına kapı aralardı.
+//
+// HIZ SINIRI YOK — BİLEREK. Diğer yazma action'larına `guardAction` eklendi
+// ama buraya eklenmedi: tek bir antrenman seansı yüzlerce olay üretebiliyor
+// (her set, her dinlenme, her egzersiz geçişi). Normal bir sınır uygulanırsa
+// olaylar sessizce düşer ve `workout_event_funnel` görünümü gerçekte olandan
+// düşük tamamlanma oranı gösterir — yani veriyi korumak isterken veriyi
+// bozarız. Suistimal yüzeyi de dar: yazma RLS ile kendi satırlarıyla sınırlı
+// ve tablo yalnızca analitik amaçlı.
 // ============================================================================
 
 export type WorkoutEvent =

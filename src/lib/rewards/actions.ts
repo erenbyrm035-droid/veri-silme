@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface ClaimResult {
   ok: boolean;
@@ -24,6 +25,8 @@ export async function claimRewardById(rewardId: string): Promise<ClaimResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("reward:claim", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
 
   try {
     const { data, error } = await supabase.rpc("claim_reward", { p_reward: rewardId });

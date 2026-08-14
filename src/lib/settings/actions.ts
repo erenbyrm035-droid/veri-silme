@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { reportError } from "@/lib/observability/report-server";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface SettingsResult<T = undefined> { ok: boolean; error?: string; data?: T; }
 const fail = (e: string): SettingsResult<never> => ({ ok: false, error: e });
@@ -37,6 +38,8 @@ export type SettingsPayload = z.infer<typeof settingsSchema>;
 export async function saveUserSettings(payload: SettingsPayload): Promise<SettingsResult> {
   const user = await requireUser();
   if (!user) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("settings:save", user.id, LIMITS.post);
+  if (!rl.ok) return fail(rl.error!);
 
   const parsed = settingsSchema.safeParse(payload);
   if (!parsed.success) return fail("Geçersiz ayar verisi.");
@@ -55,6 +58,8 @@ export async function saveUserSettings(payload: SettingsPayload): Promise<Settin
 export async function exportMyData(): Promise<SettingsResult<string>> {
   const user = await requireUser();
   if (!user) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("settings:export", user.id, LIMITS.sensitive);
+  if (!rl.ok) return fail(rl.error!);
   const admin = createAdminClient();
 
   const uid = user.id;
@@ -84,6 +89,8 @@ export async function exportMyData(): Promise<SettingsResult<string>> {
 export async function deleteMyAccount(reason?: string): Promise<SettingsResult> {
   const user = await requireUser();
   if (!user) return fail("Oturum bulunamadı.");
+  const rl = await guardAction("settings:delete-account", user.id, LIMITS.sensitive);
+  if (!rl.ok) return fail(rl.error!);
   const admin = createAdminClient();
   try {
     // Denetim kaydı (auth kullanıcısı silinince cascade ile bu da gider; yine de deneriz)

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface StartResult { ok: boolean; error?: string; created?: number }
 
@@ -71,6 +72,8 @@ export async function startReadyProgram(programId: string, slug: string): Promis
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("program:start", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
 
   try {
     const admin = createAdminClient();
@@ -117,6 +120,8 @@ export async function restartReadyProgram(programId: string, slug: string): Prom
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("program:restart", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
   try {
     const admin = createAdminClient();
     // Bu programa ait tamamlanmamış planlı antrenmanları temizle.
@@ -149,6 +154,8 @@ export async function abandonReadyProgram(programId: string, slug: string): Prom
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("program:abandon", user.id, LIMITS.sensitive);
+  if (!rl.ok) return { ok: false, error: rl.error };
   try {
     const admin = createAdminClient();
     await admin.from("program_progress")

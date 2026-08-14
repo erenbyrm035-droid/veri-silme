@@ -7,6 +7,7 @@ import { GOAL_MULTI_OPTIONS } from "@/lib/constants";
 import type {
   Gender, Experience, TrainingEnvironment, ActivityLevel, NutritionGoal, Goal,
 } from "@/lib/database.types";
+import { guardAction, LIMITS } from "@/lib/security/action-guard";
 
 export interface ProfileActionResult { ok: boolean; error?: string }
 
@@ -63,6 +64,8 @@ export async function updateProfile(input: ProfileUpdateInput): Promise<ProfileA
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("profile:update", user.id, LIMITS.post);
+  if (!rl.ok) return { ok: false, error: rl.error };
 
   // Yalnızca tanımlı alanları güncelleme setine al.
   const patch: Record<string, unknown> = {};
@@ -131,6 +134,8 @@ export async function setAvatar(url: string | null): Promise<ProfileActionResult
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
+  const rl = await guardAction("profile:avatar", user.id, LIMITS.post);
+  if (!rl.ok) return { ok: false, error: rl.error };
   const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/profile");

@@ -8,7 +8,7 @@
 // ============================================================================
 import type {
   PostureProblem, PostureFinding, PostureRegion, RegionScore, RegionStatus,
-  PostureMuscleAnalysis, RiskLevel, CorrectiveProgram, CorrectiveExercise, CorrectiveSectionType,
+  PostureMuscleAnalysis, RiskLevel, CorrectiveProgram, CorrectiveExercise,
 } from "@/lib/database.types";
 
 export const REGION_LABELS: Record<PostureRegion, string> = {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Search, Plus, X, Utensils } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface FoodHit {
   id: string; name: string; brand: string | null; category: string | null;

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
-import { Play, Pause, RotateCcw, Repeat, Loader2, Box } from "lucide-react";
+import { Play, Pause, RotateCcw, Repeat, Box } from "lucide-react";
 import { PlaceholderCharacter, motionForKey } from "./PlaceholderCharacter";
 import type { Animation, CameraPosition } from "@/lib/database.types";
 

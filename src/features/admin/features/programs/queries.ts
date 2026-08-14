@@ -12,7 +12,6 @@ import type {
   ProgramVersion,
   ProgramRating,
   ProgramFavorite,
-  ProgramProgress,
 } from "@/lib/database.types";
 import { PROGRAMS_PAGE_SIZE, type ProgramSort } from "./constants";
 

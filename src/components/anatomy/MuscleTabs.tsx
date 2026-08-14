@@ -204,7 +204,14 @@ function CategoryGrid({
   empty: string;
 }) {
   if (items.length === 0) {
-    return <div className="card py-8 text-center text-sm text-fg-muted">{empty}</div>;
+    // `icon` üç çağrı yerinden de geçiliyordu ama hiç kullanılmıyordu; boş
+    // durumda göstermek çağıranın niyetini karşılıyor.
+    return (
+      <div className="card flex flex-col items-center gap-2 py-8 text-center text-sm text-fg-muted">
+        {icon}
+        {empty}
+      </div>
+    );
   }
   return (
     <div className="grid gap-3 sm:grid-cols-2">

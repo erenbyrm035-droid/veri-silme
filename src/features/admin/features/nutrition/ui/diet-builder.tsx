@@ -18,7 +18,7 @@ function mealTotals(m: MealWithFoods) {
 
 function MealCard({ planId, meal }: { planId: string; meal: MealWithFoods }) {
   const router = useRouter();
-  const [isPending, startTransition] = React.useTransition();
+  const [, startTransition] = React.useTransition();
   const [addOpen, setAddOpen] = React.useState(false);
   const t = mealTotals(meal);
   return (

@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Salad, Send, Sparkles, RefreshCw, Pencil, ChevronDown, Clock, ShoppingCart, Utensils, ArrowRight, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  INTERVIEW_QUESTIONS, GOAL_LABEL,
-  type InterviewQuestion, type InterviewAnswers, type DietPlan, type DietMeal,
+  INTERVIEW_QUESTIONS,
+  type InterviewQuestion, type DietPlan, type DietMeal,
 } from "@/lib/nutrition/interview";
 import {
   getDietitianState, answerQuestion, resetInterview, toggleShoppingItem,

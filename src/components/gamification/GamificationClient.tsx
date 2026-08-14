@@ -9,7 +9,7 @@ import {
   ChevronDown, ChevronRight, Medal, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fitnessLabel, RECOVERY_META, PERIOD_LABEL, TIER_STYLE, REWARD_TYPE_LABEL, CATEGORY_LABEL, type RecoveryStatus } from "@/lib/gamification/constants";
+import { fitnessLabel, RECOVERY_META, PERIOD_LABEL, TIER_STYLE, CATEGORY_LABEL, type RecoveryStatus } from "@/lib/gamification/constants";
 import { XpBar, Gauge, StreakFlame, BadgeMedal, AchievementCard } from "./primitives";
 import { LevelUpModal, CountUp } from "./animations";
 import { BattlePass } from "./BattlePass";

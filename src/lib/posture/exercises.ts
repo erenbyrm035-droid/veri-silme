@@ -8,7 +8,6 @@ import type {
   CorrectiveSectionType,
   Difficulty,
   ExerciseCategory,
-  TrainingEnvironment,
   CorrectiveExercise,
 } from "@/lib/database.types";
 

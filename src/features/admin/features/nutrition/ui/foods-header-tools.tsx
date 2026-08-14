@@ -13,7 +13,7 @@ import { download } from "@/features/admin/features/exercises/ui/download";
 
 export function FoodsHeaderTools() {
   const router = useRouter();
-  const [isPending, startTransition] = React.useTransition();
+  const [, startTransition] = React.useTransition();
   const [importOpen, setImportOpen] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);

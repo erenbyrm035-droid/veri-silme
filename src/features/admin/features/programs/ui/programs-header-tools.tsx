@@ -24,7 +24,9 @@ export function ProgramsHeaderTools() {
   const [error, setError] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  function useTemplate(slug: string) {
+  // Adı bilerek `use...` DEĞİL: React hook kuralları `use` önekli her çağrıyı
+  // hook sanar; bu bir olay işleyicisi ve callback içinden çağrılıyor.
+  function pickTemplate(slug: string) {
     startTransition(async () => {
       const res = await applyTemplate({ templateSlug: slug });
       if (res.ok && res.data) { setTplOpen(false); router.push(`/admin/programs/${res.data.id}`); }
@@ -78,7 +80,7 @@ export function ProgramsHeaderTools() {
           </DialogHeader>
           <div className="grid max-h-80 grid-cols-2 gap-2 overflow-auto">
             {PROGRAM_TEMPLATES.map((t) => (
-              <button key={t.slug} disabled={isPending} onClick={() => useTemplate(t.slug)}
+              <button key={t.slug} disabled={isPending} onClick={() => pickTemplate(t.slug)}
                 className="rounded-xl border border-ink-border bg-ink-soft/50 p-3 text-left transition-colors hover:border-brand hover:bg-brand/5 disabled:opacity-50">
                 <p className="text-sm font-semibold">{t.name}</p>
                 <p className="mt-0.5 text-xs text-fg-muted">{t.weeks} hafta · {t.days.length} gün/hafta</p>

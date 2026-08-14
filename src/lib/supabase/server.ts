@@ -38,6 +38,9 @@ export async function createClient() {
  * SADECE sunucu tarafında, güvenilir bağlamda kullanılmalı.
  */
 export function createAdminClient() {
+  // Fonksiyon senkron; statik import dönüş tipini daraltıp 65 dosyada tip
+  // hatası açardı (ayrı bir iş).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createClient: createSbClient } = require("@supabase/supabase-js");
   return createSbClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

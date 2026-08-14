@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Trophy, Flame, ArrowRight, Sparkles } from "lucide-react";
+import { Trophy, ArrowRight, Sparkles } from "lucide-react";
 import { XpBar, StreakFlame } from "./primitives";
 
 export interface DashboardXpCardProps {

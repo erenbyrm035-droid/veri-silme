@@ -84,17 +84,26 @@ export function getAIProvider(): AIProvider | null {
 
   if (preferred === "anthropic" && process.env.ANTHROPIC_API_KEY) {
     // Lazy import — SDK sadece gerektiğinde yüklenir.
+    // getAIProvider senkron; await import() imzayı değiştirip tüm çağrı
+    // zincirini async yapardı. SDK yalnızca seçilen sağlayıcı için yüklensin.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createAnthropicProvider } = require("./anthropic");
     return createAnthropicProvider();
   }
 
   if (process.env.OPENAI_API_KEY) {
+    // getAIProvider senkron; await import() imzayı değiştirip tüm çağrı
+    // zincirini async yapardı. SDK yalnızca seçilen sağlayıcı için yüklensin.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createOpenAIProvider } = require("./openai");
     return createOpenAIProvider();
   }
 
   // Tercih anthropic ama openai anahtarı da yoksa, anthropic'i dene.
   if (process.env.ANTHROPIC_API_KEY) {
+    // getAIProvider senkron; await import() imzayı değiştirip tüm çağrı
+    // zincirini async yapardı. SDK yalnızca seçilen sağlayıcı için yüklensin.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createAnthropicProvider } = require("./anthropic");
     return createAnthropicProvider();
   }

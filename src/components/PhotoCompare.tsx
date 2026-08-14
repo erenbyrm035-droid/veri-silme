@@ -6,7 +6,6 @@ import { uploadToStorage } from "@/lib/storage/upload";
 import type { BodyPhoto } from "@/lib/database.types";
 import { formatShortDate, todayISO } from "@/lib/utils";
 import { Upload, Loader2, Trash2, Camera } from "lucide-react";
-import { Segmented } from "@/components/ui/Segmented";
 import { SmartImage } from "@/components/ui/SmartImage";
 
 interface PhotoWithUrl extends BodyPhoto {

@@ -147,7 +147,6 @@ export async function POST(request: Request) {
     weekly_training_days: Number(answers.training_days) || null,
   });
   const T = { calories: targets.calories, protein: targets.protein_g, carbs: targets.carbs_g, fat: targets.fat_g };
-  const meals = Math.min(6, Math.max(3, Number(answers.meals_per_day) || 4));
 
   try {
     // ------------------------------------------------------------------ MEAL

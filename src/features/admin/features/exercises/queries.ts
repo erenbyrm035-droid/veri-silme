@@ -3,7 +3,6 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type {
   Exercise,
   AdminExerciseRow,
-  ExerciseCategory,
   ExerciseCategoryRow,
   ExerciseTag,
   ExerciseMuscleLink,
@@ -11,7 +10,6 @@ import type {
   ExerciseRelationRow,
   ExerciseVersion,
   ExerciseStatus,
-  Difficulty,
   DuplicateGroup,
   Muscle,
 } from "@/lib/database.types";

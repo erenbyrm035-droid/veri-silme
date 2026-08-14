@@ -30,7 +30,7 @@ export function TeamLiveWorkout({ hub }: { hub: TeamHub }) {
   }
 
   return live ? (
-    <ActiveSession session={live} canEnd={canEnd} meId={meId} />
+    <ActiveSession session={live} canEnd={canEnd} />
   ) : (
     <IdleState teamId={team.id} />
   );
@@ -79,8 +79,8 @@ function IdleState({ teamId }: { teamId: string }) {
 }
 
 function ActiveSession({
-  session, canEnd, meId,
-}: { session: LiveSessionView; canEnd: boolean; meId: string }) {
+  session, canEnd,
+}: { session: LiveSessionView; canEnd: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<"join" | "leave" | "end" | null>(null);
   const [err, setErr] = React.useState<string | null>(null);

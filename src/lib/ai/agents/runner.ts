@@ -3,7 +3,6 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { AIProvider, ChatMessage } from "@/lib/ai/provider";
 import { runToolPhase, observationsToPrompt } from "@/lib/ai/agent/runtime";
 import type { ToolContext } from "@/lib/ai/agent/tools";
-import { getSpecialist } from "./specialists";
 import { buildAgentContext, type MemoryInput } from "./memory";
 import type { AgentConfig, AgentFinding, AgentSelection, AgentKey, SelectionReason } from "./types";
 
@@ -45,7 +44,6 @@ export async function runSpecialist(
   selection: AgentSelection
 ): Promise<AgentFinding> {
   const started = Date.now();
-  const spec = getSpecialist(cfg.key);
   const base: Pick<AgentFinding, "key" | "name" | "model" | "variant" | "reason"> = {
     key: selection.key,
     name: cfg.name,

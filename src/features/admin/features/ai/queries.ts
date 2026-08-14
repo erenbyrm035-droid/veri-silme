@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import type { AiPromptVersion, AiUsageRow, AiLogRow } from "@/lib/database.types";
+import type { AiPromptVersion, AiLogRow } from "@/lib/database.types";
 
 export async function listPromptVersions(key = "coach_system"): Promise<AiPromptVersion[]> {
   const supabase = createAdminClient();

@@ -71,8 +71,13 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [ ] Klavye navigasyonu tam denetimi
 
 ## 9. Test & CI/CD
-- [x] GitHub Actions: lint + typecheck + build
-- [ ] Vitest unit testleri (nutrition/premium/entitlements/rate-limit)
+- [x] GitHub Actions: lint + typecheck + test + build
+      (Bu madde uzun süre yanlış işaretliydi: depoda hiç ESLint yapılandırması
+      yoktu, `next lint` interaktif soru sorup exit 1 veriyor ve akış hep
+      kırmızıya düşüyordu. Yapılandırma eklendi, çalışma #13'ten beri yeşil.)
+- [x] Vitest unit testleri — saf fonksiyonlar (workout engine, XP projeksiyonu,
+      egzersiz isim/arama, AI güvenlik kalıpları, postür eşikleri, plan/SKU
+      eşlemesi, profil ve takım şemaları, takım üyelik kapıları)
 - [ ] Playwright E2E (login → onboarding → workout → AI)
 - [ ] Preview deploy (Vercel PR preview) + Production deploy pipeline
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { VolumeChart } from "@/components/workout/VolumeChart";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 import { getWeeklyVolume, getTopPRs } from "@/lib/data/workouts";
 import { formatShortDate } from "@/lib/utils";
 import { Plus, Dumbbell, CheckCircle2, Clock, Trophy, BarChart3, LayoutGrid, ChevronRight, Play } from "lucide-react";
@@ -144,13 +145,20 @@ export default async function WorkoutsPage() {
         </section>
       )}
 
-      {/* Haftalık hacim */}
+      {/* Haftalık hacim — `advanced_analytics` kapsamındaki "hacim trendi".
+          Antrenman listesi, PR'lar ve devam eden antrenman açık kalıyor;
+          kapı yalnızca trend grafiğinde. */}
       {volume.length >= 2 && (
         <Card>
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-fg-muted">
             <BarChart3 size={15} className="text-brand" /> Haftalık Hacim (tonaj)
           </h2>
-          <VolumeChart data={volume} />
+          <PremiumGate
+            feature="advanced_analytics"
+            description="Haftalık tonaj trendini görmek Premium'a özeldir."
+          >
+            <VolumeChart data={volume} />
+          </PremiumGate>
         </Card>
       )}
 

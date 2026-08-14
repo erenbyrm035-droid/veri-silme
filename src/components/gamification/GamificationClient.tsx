@@ -9,6 +9,8 @@ import {
   ChevronDown, ChevronRight, Medal, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFeature } from "@/lib/premium/context";
+import { PremiumGate } from "@/components/premium/PremiumGate";
 import { fitnessLabel, RECOVERY_META, PERIOD_LABEL, TIER_STYLE, CATEGORY_LABEL, type RecoveryStatus } from "@/lib/gamification/constants";
 import { XpBar, Gauge, StreakFlame, BadgeMedal, AchievementCard } from "./primitives";
 import { LevelUpModal, CountUp } from "./animations";
@@ -190,6 +192,9 @@ function OverviewTab(props: GamificationClientProps) {
         </section>
       )}
 
+      {/* Kas ısı haritası = `advanced_analytics` kapsamındaki "kas dengesi".
+          Seviye, rozet ve toparlanma göstergesi açık kalıyor; kapı yalnızca
+          bu ayrıntılı dağılımda. */}
       <MuscleHeatmap heatmap={heatmap} />
       <LevelLadder levels={overview.levels} current={overview.stats.level} totalXp={overview.stats.total_xp} />
     </div>
@@ -217,6 +222,10 @@ function StatGrid({ overview }: { overview: GamificationOverview }) {
 }
 
 function MuscleHeatmap({ heatmap }: { heatmap: HeatmapEntry[] }) {
+  // Kapı bileşenin İÇİNDE: kartın başlığı ve çerçevesi görünsün, kilit
+  // yalnızca verinin üstünde olsun. Böylece ücretsiz kullanıcı neyi
+  // kaçırdığını görüyor, boş bir yer değil.
+  const unlocked = useFeature("advanced_analytics");
   if (heatmap.length === 0) return null;
   const max = Math.max(...heatmap.map((h) => h.sets), 1);
   const most = heatmap.slice(0, 3);
@@ -227,6 +236,8 @@ function MuscleHeatmap({ heatmap }: { heatmap: HeatmapEntry[] }) {
         <Dumbbell size={16} className="text-brand" />
         <h3 className="text-sm font-semibold">Kas Isı Haritası <span className="text-fg-muted">· son 30 gün</span></h3>
       </div>
+      <PremiumGate feature="advanced_analytics"
+        description="Kas grubu dağılımı ve denge analizi Premium'a özeldir.">
       <div className="space-y-1.5">
         {heatmap.slice(0, 10).map((h) => {
           const pct = (h.sets / max) * 100;
@@ -243,10 +254,13 @@ function MuscleHeatmap({ heatmap }: { heatmap: HeatmapEntry[] }) {
           );
         })}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-        <div><span className="font-semibold text-emerald-400">En çok:</span> <span className="text-fg-muted">{most.map((m) => m.name).join(", ")}</span></div>
-        <div><span className="font-semibold text-coral">En az:</span> <span className="text-fg-muted">{least.map((m) => m.name).join(", ")}</span></div>
-      </div>
+      {unlocked && (
+        <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+          <div><span className="font-semibold text-emerald-400">En çok:</span> <span className="text-fg-muted">{most.map((m) => m.name).join(", ")}</span></div>
+          <div><span className="font-semibold text-coral">En az:</span> <span className="text-fg-muted">{least.map((m) => m.name).join(", ")}</span></div>
+        </div>
+      )}
+      </PremiumGate>
     </section>
   );
 }

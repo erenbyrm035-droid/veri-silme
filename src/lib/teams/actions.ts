@@ -27,6 +27,38 @@ async function canAct(admin: Admin, teamId: string, userId: string, min: TeamRol
   return !!r && ROLE_RANK[r] >= ROLE_RANK[min];
 }
 
+/**
+ * Bir gönderi/etkinlik ile etkileşim (yorum, tepki, katılım) izni.
+ *
+ * NEDEN GEREKLİ: bu dosyadaki tüm sorgular `createAdminClient` ile, yani
+ * RLS ATLANARAK çalışıyor. Güvenlik tamamen buradaki kontrollere bağlı.
+ * Yorum/tepki/katılım fonksiyonları istemciden gelen ham `postId`/`eventId`
+ * ile doğrudan yazıyordu ve çağıranın o takımın üyesi olup olmadığını hiç
+ * sormuyordu — yani oturumu olan herkes ÜYESİ OLMADIĞI gizli bir takımın
+ * gönderisine yorum yazabiliyor, etkinliğine kendini "katılıyor" olarak
+ * ekleyebiliyordu (ve etkinlik hatırlatma cron'u sonra ona bildirim
+ * gönderiyordu).
+ *
+ * `team_posts.team_id` NULL olabilir (migration 0044): kişisel akış
+ * gönderileri. Onlar takıma ait değil, üyelik kontrolü de anlamsız —
+ * görünürlükleri akış katmanında belirleniyor.
+ *
+ * @returns izin varsa `null`, yoksa döndürülecek hata sonucu
+ */
+async function assertCanInteract(
+  admin: Admin,
+  table: "team_posts" | "team_events",
+  rowId: string,
+  userId: string
+): Promise<TeamResult<never> | null> {
+  const { data } = await admin.from(table).select("team_id").eq("id", rowId).maybeSingle();
+  if (!data) return fail(table === "team_posts" ? "Gönderi bulunamadı." : "Etkinlik bulunamadı.");
+  const teamId = data.team_id as string | null;
+  if (!teamId) return null; // kişisel gönderi — takım üyeliği aranmaz
+  if (!(await canAct(admin, teamId, userId, "member"))) return fail("Bu takımın üyesi değilsin.");
+  return null;
+}
+
 function touch(slug?: string) {
   revalidatePath("/teams");
   if (slug) revalidatePath(`/teams/${slug}`);
@@ -335,6 +367,8 @@ export async function togglePostReaction(postId: string, kind: ReactionKind): Pr
 
   try {
     const admin = createAdminClient();
+    const gate = await assertCanInteract(admin, "team_posts", postId, userId);
+    if (gate) return gate;
     const { data: existing } = await admin.from("team_post_reactions")
       .select("id").eq("post_id", postId).eq("user_id", userId).eq("kind", kind).maybeSingle();
     if (existing) {
@@ -360,6 +394,8 @@ export async function addComment(postId: string, body: string): Promise<TeamResu
 
   try {
     const admin = createAdminClient();
+    const gate = await assertCanInteract(admin, "team_posts", postId, userId);
+    if (gate) return gate;
     await admin.from("team_post_comments").insert({ post_id: postId, user_id: userId, body: text });
     touch();
     return { ok: true };
@@ -580,6 +616,8 @@ export async function toggleEventJoin(eventId: string): Promise<TeamResult<{ goi
   if (!userId) return fail("Oturum bulunamadı.");
   try {
     const admin = createAdminClient();
+    const gate = await assertCanInteract(admin, "team_events", eventId, userId);
+    if (gate) return gate;
     const { data: existing } = await admin.from("team_event_participants")
       .select("id").eq("event_id", eventId).eq("user_id", userId).maybeSingle();
     if (existing) {

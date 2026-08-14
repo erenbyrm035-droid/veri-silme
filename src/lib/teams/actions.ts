@@ -5,6 +5,10 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
 import { ROLE_RANK, type TeamRole, type ReactionKind, type MessageKind, type QuestMetric, type EventKind } from "./types";
 import { guardAction, LIMITS } from "@/lib/security/action-guard";
+import {
+  createTeamSchema, updateTeamSchema, postBodySchema, commentBodySchema,
+  messageSchema, questSchema, eventSchema, ilkHata,
+} from "./schema";
 
 export interface TeamResult<T = undefined> { ok: boolean; error?: string; data?: T }
 const fail = (e: string): TeamResult<never> => ({ ok: false, error: e });
@@ -99,8 +103,9 @@ export async function createTeam(input: {
 }): Promise<TeamResult<{ slug: string }>> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  const name = input.name.trim();
-  if (name.length < 3) return fail("Takım adı en az 3 karakter olmalı.");
+  const v = createTeamSchema.safeParse(input);
+  if (!v.success) return fail(ilkHata(v.error));
+  const name = v.data.name;
 
   try {
     const admin = createAdminClient();
@@ -239,13 +244,15 @@ export async function updateTeam(teamId: string, patch: {
 }): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
+  const v = updateTeamSchema.safeParse(patch);
+  if (!v.success) return fail(ilkHata(v.error));
   try {
     const admin = createAdminClient();
     if (!(await canAct(admin, teamId, userId, "admin"))) return fail("Bu işlem için yetkin yok.");
     const clean: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    for (const [k, v] of Object.entries(patch)) {
-      if (v === undefined) continue;
-      clean[k] = typeof v === "string" ? (v.trim() || null) : v;
+    for (const [k, val] of Object.entries(v.data)) {
+      if (val === undefined) continue;
+      clean[k] = typeof val === "string" ? (val.trim() || null) : val;
     }
     const { data: team } = await admin.from("teams").update(clean).eq("id", teamId).select("slug").single();
     touch(team?.slug as string);
@@ -340,8 +347,9 @@ export async function decideJoinRequest(requestId: string, approve: boolean): Pr
 export async function createPost(teamId: string, body: string): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  const text = body.trim();
-  if (!text) return fail("Boş gönderi paylaşılamaz.");
+  const v = postBodySchema.safeParse(body);
+  if (!v.success) return fail(ilkHata(v.error));
+  const text = v.data;
 
   const rl = await guardAction("team:post", userId, LIMITS.post);
   if (!rl.ok) return fail(rl.error!);
@@ -386,8 +394,9 @@ export async function togglePostReaction(postId: string, kind: ReactionKind): Pr
 export async function addComment(postId: string, body: string): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  const text = body.trim();
-  if (!text) return fail("Yorum boş olamaz.");
+  const v = commentBodySchema.safeParse(body);
+  if (!v.success) return fail(ilkHata(v.error));
+  const text = v.data;
 
   const rl = await guardAction("team:comment", userId, LIMITS.post);
   if (!rl.ok) return fail(rl.error!);
@@ -437,8 +446,10 @@ export async function sendMessage(teamId: string, input: {
 }): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  const text = (input.body ?? "").trim();
-  const kind = input.kind ?? "text";
+  const v = messageSchema.safeParse(input);
+  if (!v.success) return fail(ilkHata(v.error));
+  const text = (v.data.body ?? "").trim();
+  const kind = v.data.kind ?? "text";
   if (!text && kind === "text") return fail("Mesaj boş olamaz.");
 
   const rl = await guardAction("team:message", userId, LIMITS.post);
@@ -519,8 +530,9 @@ export async function createQuest(teamId: string, input: {
 }): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  if (!input.title.trim()) return fail("Görev başlığı gerekli.");
-  if (!(input.target > 0)) return fail("Hedef 0'dan büyük olmalı.");
+  const v = questSchema.safeParse(input);
+  if (!v.success) return fail(ilkHata(v.error));
+  input = v.data as typeof input;
   try {
     const admin = createAdminClient();
     if (!(await canAct(admin, teamId, userId, "admin"))) return fail("Görev oluşturmak için yönetici olmalısın.");
@@ -593,7 +605,9 @@ export async function createEvent(teamId: string, input: {
 }): Promise<TeamResult> {
   const userId = await me();
   if (!userId) return fail("Oturum bulunamadı.");
-  if (!input.title.trim()) return fail("Etkinlik başlığı gerekli.");
+  const v = eventSchema.safeParse(input);
+  if (!v.success) return fail(ilkHata(v.error));
+  input = v.data as typeof input;
   try {
     const admin = createAdminClient();
     if (!(await canAct(admin, teamId, userId, "moderator"))) return fail("Etkinlik oluşturmak için yetkin yok.");

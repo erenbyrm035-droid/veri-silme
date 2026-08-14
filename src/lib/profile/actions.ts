@@ -4,47 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { calcMacroTargets } from "@/lib/nutrition";
 import { GOAL_MULTI_OPTIONS } from "@/lib/constants";
-import type {
-  Gender, Experience, TrainingEnvironment, ActivityLevel, NutritionGoal, Goal,
-} from "@/lib/database.types";
+import type { Gender, ActivityLevel, NutritionGoal, Goal } from "@/lib/database.types";
 import { guardAction, LIMITS } from "@/lib/security/action-guard";
+import { profileUpdateSchema, avatarSchema, alanEtiketi, type ProfileUpdateInput } from "./schema";
+
+// Tip artık şemadan türüyor — doğrulama ile arayüz tek kaynaktan besleniyor.
+export type { ProfileUpdateInput };
 
 export interface ProfileActionResult { ok: boolean; error?: string }
 
-/** Düzenleme formundan gelen alanlar (hepsi opsiyonel; yalnızca gönderilenler güncellenir). */
-export interface ProfileUpdateInput {
-  full_name?: string;
-  bio?: string | null;
-  birth_date?: string | null;
-  gender?: Gender | null;
-  height_cm?: number | null;
-  weight_kg?: number | null;
-  target_weight_kg?: number | null;
-  body_fat_pct?: number | null;
-  activity_level?: ActivityLevel | null;
-  occupation?: string | null;
-  goals?: string[];
-  experience?: Experience | null;
-  training_environment?: TrainingEnvironment | null;
-  available_equipment?: string[];
-  preferred_workout_duration?: number | null;
-  weekly_training_days?: number | null;
-  nutrition_goal?: NutritionGoal | null;
-  daily_calorie_goal?: number;
-  daily_protein_goal?: number;
-  daily_carb_goal?: number | null;
-  daily_fat_goal?: number | null;
-  daily_water_goal_ml?: number;
-  injuries?: string[];
-  health_conditions?: string[];
-  allergies?: string[];
-  health_notes?: string | null;
-  daily_sitting_hours?: number | null;
-  sleep_hours?: number | null;
-  water_intake_ml?: number | null;
-  smoking_status?: string | null;
-  recalcMacros?: boolean; // beslenme alanları değiştiyse makroları yeniden hesapla
-}
 
 function ageFromBirth(iso: string | null | undefined): number | null {
   if (!iso) return null;
@@ -60,12 +28,21 @@ function ageFromBirth(iso: string | null | undefined): number | null {
  * Profili GÜNCELLER (yalnızca UPDATE — asla INSERT).
  * Onboarding'den bağımsız; kayıt/oluşturma hissi yoktur.
  */
-export async function updateProfile(input: ProfileUpdateInput): Promise<ProfileActionResult> {
+export async function updateProfile(raw: ProfileUpdateInput): Promise<ProfileActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
   const rl = await guardAction("profile:update", user.id, LIMITS.post);
   if (!rl.ok) return { ok: false, error: rl.error };
+
+  // Aralık/uzunluk doğrulaması — boy, kilo ve yaş doğrudan makro hesabına
+  // giriyor; saçma değerler kullanıcıya saçma kalori hedefi yazdırırdı.
+  const parsed = profileUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    const ilk = parsed.error.issues[0];
+    return { ok: false, error: `${alanEtiketi(ilk.path as (string | number)[])}: ${ilk.message}` };
+  }
+  const input = parsed.data;
 
   // Yalnızca tanımlı alanları güncelleme setine al.
   const patch: Record<string, unknown> = {};
@@ -136,7 +113,11 @@ export async function setAvatar(url: string | null): Promise<ProfileActionResult
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
   const rl = await guardAction("profile:avatar", user.id, LIMITS.post);
   if (!rl.ok) return { ok: false, error: rl.error };
-  const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+
+  const av = avatarSchema.safeParse(url);
+  if (!av.success) return { ok: false, error: "Geçersiz avatar adresi." };
+
+  const { error } = await supabase.from("profiles").update({ avatar_url: av.data }).eq("id", user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/profile");
   return { ok: true };

@@ -6,6 +6,11 @@ import { reportError } from "@/lib/observability/report-server";
 import { activityOf, type ActivityKey } from "@/lib/workout/calories";
 import { guardAction, LIMITS } from "@/lib/security/action-guard";
 import type { PresenceStatus } from "./types";
+import { z } from "zod";
+
+// Canlı oturum/parti başlığı: kolon sınırsız `text`. Server action dışarıdan
+// doğrudan POST edilebildiği için arayüzdeki maxlength koruma sayılmaz.
+const baslikSchema = z.string().trim().max(80).nullable().optional();
 
 export interface SocialResult<T = undefined> { ok: boolean; error?: string; data?: T }
 const fail = (e: string): SocialResult<never> => ({ ok: false, error: e });
@@ -250,7 +255,8 @@ export async function startLiveSession(teamId: string, title?: string): Promise<
     }
 
     const { data: session, error } = await admin.from("team_live_sessions").insert({
-      team_id: teamId, host_id: userId, title: title?.trim() || "Birlikte Antrenman",
+      team_id: teamId, host_id: userId,
+      title: baslikSchema.safeParse(title).data?.trim() || "Birlikte Antrenman",
     }).select("id").single();
     if (error || !session) return fail(error?.message ?? "Oturum başlatılamadı.");
 
@@ -320,7 +326,7 @@ export async function startFriendParty(input: {
     const { data: session, error } = await admin.from("team_live_sessions").insert({
       team_id: null,
       host_id: userId,
-      title: input.title?.trim() || `${act.emoji} ${act.label} Partisi`,
+      title: baslikSchema.safeParse(input.title).data?.trim() || `${act.emoji} ${act.label} Partisi`,
       visibility: "friends",
       activity: act.key,
       met: act.met,

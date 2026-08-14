@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
 import { guardAction, LIMITS } from "@/lib/security/action-guard";
+import { z } from "zod";
 
 export interface ClaimResult {
   ok: boolean;
@@ -27,6 +28,12 @@ export async function claimRewardById(rewardId: string): Promise<ClaimResult> {
   if (!user) return { ok: false, error: "Oturum bulunamadı." };
   const rl = await guardAction("reward:claim", user.id, LIMITS.sensitive);
   if (!rl.ok) return { ok: false, error: rl.error };
+
+  // Biçim kontrolü: uuid olmayan bir değer RPC'ye gidip ham Postgres hatası
+  // döndürüyordu; kullanıcıya anlamlı mesaj verilsin.
+  if (!z.string().uuid().safeParse(rewardId).success) {
+    return { ok: false, error: "Geçersiz ödül." };
+  }
 
   try {
     const { data, error } = await supabase.rpc("claim_reward", { p_reward: rewardId });

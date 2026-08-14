@@ -51,8 +51,12 @@ const SAFE: SafetyResult = {
 
 /** Kullanıcı mesajında acil tıbbi durum işareti. Bunlar tartışmasız. */
 const EMERGENCY_PATTERNS: { re: RegExp; flag: string }[] = [
-  { re: /göğs[üu]m(de)?\s+(ağrı|acı|sıkış|baskı)|göğüs ağrısı/i, flag: "chest_pain" },
-  { re: /nefes\s*(al[ae]mıyor|darlığı|yetmiyor)|boğuluyor/i,      flag: "dyspnea" },
+  // Araya sıfat girebilir: "göğsümde ŞİDDETLİ BİR ağrı var" ifadesi klasik
+  // kalp krizi tarifi ama `\s+` ile yalnızca bitişik yazım yakalanıyordu.
+  // Mesafe tabanlı arama araya giren kelimelere takılmaz.
+  { re: /göğs[üu]m?(de)?.{0,20}(ağrı|acı|sıkış|baskı)|göğüs ağrısı/i, flag: "chest_pain" },
+  // `[ıi]`: Türkçe klavyesi olmayan kullanıcı "alamiyorum" (noktalı i) yazar.
+  { re: /nefes\s*(al[ae]m[ıi]yor|darlığı|yetmiyor)|boğuluyor/i,      flag: "dyspnea" },
   // Bayılma/presenkop: GELECEK ZAMAN da yakalanmalı ("bayılacağım"). Baş
   // dönmesi ve göz kararması, egzersiz sırasında durup kontrol etmeyi
   // gerektiren erken uyarılardır; bunlar eksikti.
@@ -122,9 +126,20 @@ function emergencyMessage(flags: string[]): string {
   );
 }
 
-/** Kullanıcı mesajını tarar. Acil durumda cevap ÜRETİLMEDEN önce durdurur. */
+/**
+ * Kullanıcı mesajını tarar. Acil durumda cevap ÜRETİLMEDEN önce durdurur.
+ *
+ * TÜRKÇE KÜÇÜK HARFE ÇEVİRME ŞART: kalıplar noktasız `ı` içeriyor
+ * ("alamıyor", "bayıl", "ağrı"). Regex'in `i` bayrağı Unicode katlaması
+ * yapar ve büyük `I`yı NOKTALI `i`ye indirir — yani "NEFES ALAMIYORUM"
+ * yazan kullanıcı "alamiyorum" üretir ve HİÇBİR acil kalıba takılmazdı.
+ * Caps lock'la ya da otomatik büyük harf yapan mobil klavyeyle yazan
+ * kullanıcı güvenlik ağının tamamını atlıyordu. `trLower` büyük `I`yı
+ * doğru şekilde `ı`ya indiriyor.
+ */
 export function screenUserMessage(message: string): SafetyResult {
-  const flags = EMERGENCY_PATTERNS.filter((p) => p.re.test(message)).map((p) => p.flag);
+  const norm = trLower(message);
+  const flags = EMERGENCY_PATTERNS.filter((p) => p.re.test(norm)).map((p) => p.flag);
   if (flags.length === 0) return SAFE;
   return { ...SAFE, verdict: "block", message: emergencyMessage(flags), flags };
 }

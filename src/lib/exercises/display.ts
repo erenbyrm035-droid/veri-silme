@@ -54,9 +54,21 @@ export function displayNameFor(
   return (stored.exercise_name ?? "").trim();
 }
 
-/** Aksan/Türkçe harf farkını yok sayan arama anahtarı. */
+/**
+ * Aksan/Türkçe harf farkını yok sayan arama anahtarı.
+ *
+ * `I` EŞLEMESİ ŞART: aşağıda `toLocaleLowerCase("tr-TR")` var ve Türkçe
+ * yerelde büyük `I` → NOKTASIZ `ı` olur. Bu eşleme olmadan "DEADLIFT"
+ * aranınca "deadlıft" üretilir ve "Romanian Deadlift" ile eşleşmez —
+ * yani caps lock'la ya da otomatik büyük harf yapan mobil klavyeyle
+ * arayan kullanıcı hiçbir sonuç alamaz. Büyük ve küçük İ/I'nın dört
+ * biçimi de `i`ye indirgeniyor.
+ */
 function foldKey(s: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i" };
+  const map: Record<string, string> = {
+    ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u",
+    İ: "i", I: "i",
+  };
   return s
     .split("").map((c) => map[c] ?? c).join("")
     .toLocaleLowerCase("tr-TR")

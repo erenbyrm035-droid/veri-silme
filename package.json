@@ -2,13 +2,15 @@
   "name": "ai-fitness-coach",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Fitness Coach - Türkiye pazarına yönelik yapay zeka destekli fitness koçu SaaS uygulaması",
+  "description": "AI Fitness Coach - T\u00fcrkiye pazar\u0131na y\u00f6nelik yapay zeka destekli fitness ko\u00e7u SaaS uygulamas\u0131",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -61,6 +63,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
   }
 }

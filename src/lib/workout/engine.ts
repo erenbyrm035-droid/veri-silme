@@ -339,8 +339,16 @@ export function computeTotals(sets: SetLike[], exercises: ExerciseLike[]): Worko
   };
 }
 
-/** Epley formülü ile tahmini 1RM — PR tespitinde kullanılır. */
+/**
+ * Epley formülü ile tahmini 1RM — PR tespitinde kullanılır.
+ *
+ * Tek tekrar özel durumdur: kaldırılan ağırlık ZATEN 1RM'dir. Ham formül
+ * burada 1.033×w veriyor (100 kg × 1 → 103.3), yani kullanıcının rekorunu
+ * %3.3 şişiriyordu. Epley r > 1 için tanımlı; r = 1'de ağırlığın kendisi
+ * döner.
+ */
 export function estimate1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
+  if (reps === 1) return Math.round(weight * 10) / 10;
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
 }

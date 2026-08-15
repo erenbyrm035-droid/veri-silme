@@ -10,6 +10,7 @@ import { Glass, Segments, Avatar, compact } from "./shared";
 import { createTeam, joinByCode } from "@/lib/teams/actions";
 import type { TeamSummary } from "@/lib/teams/types";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { useModal, modalProps } from "@/lib/a11y/use-modal";
 
 type Sort = "total" | "weekly" | "members";
 
@@ -153,6 +154,8 @@ function TeamCard({ team, index }: { team: TeamSummary; index: number }) {
 
 // --- Modaller ---------------------------------------------------------------
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const modalRef = useModal<HTMLDivElement>(true, onClose);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 p-0 backdrop-blur-sm sm:place-items-center sm:p-4" onClick={onClose}>
       <motion.div
@@ -160,6 +163,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        {...modalProps()}
         className="w-full max-w-md rounded-t-3xl border border-white/10 bg-ink-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
       >
         <p className="mb-3 text-lg font-bold">{title}</p>

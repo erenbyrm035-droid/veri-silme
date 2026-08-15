@@ -10,6 +10,7 @@ import { createQuest, completeQuest, deleteQuest } from "@/lib/teams/actions";
 import {
   QUEST_METRIC_LABEL, ROLE_RANK, type QuestMetric, type TeamHub, type TeamQuest,
 } from "@/lib/teams/types";
+import { useModal, modalProps } from "@/lib/a11y/use-modal";
 
 const METRICS = Object.entries(QUEST_METRIC_LABEL) as [QuestMetric, string][];
 
@@ -171,6 +172,8 @@ function QuestModal({ teamId, onClose }: { teamId: string; onClose: () => void }
     router.refresh();
   }
 
+  const modalRef = useModal<HTMLDivElement>(true, onClose);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 backdrop-blur-sm sm:place-items-center sm:p-4" onClick={onClose}>
       <motion.div
@@ -178,6 +181,8 @@ function QuestModal({ teamId, onClose }: { teamId: string; onClose: () => void }
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        {...modalProps()}
         className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
       >
         <p className="mb-3 text-lg font-bold">Takım Görevi</p>

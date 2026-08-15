@@ -85,6 +85,15 @@ export default function RootLayout({
       <body className="min-h-[100dvh] bg-ink font-sans antialiased">
         <ThemeInitScript />
         <FontScaleInitScript />
+        {/* Klavye kullanıcısı için "içeriğe atla" — normalde görünmez, Tab ile
+            odaklanınca belirir. Olmadan her sayfada gezinme menüsünün tamamını
+            tek tek geçmek gerekiyordu. */}
+        <a
+          href="#icerik"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
+        >
+          İçeriğe atla
+        </a>
         {children}
         <PWARegister />
       </body>

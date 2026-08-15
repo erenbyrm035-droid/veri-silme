@@ -85,7 +85,10 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Dinamik yazı tipi ölçeği — Ayarlar → Yazı boyutu (4 kademe). Kök
       font-size değiştiği için tüm arayüz orantılı ölçekleniyor.
 - [ ] VoiceOver/TalkBack manuel testi
-- [ ] Klavye navigasyonu tam denetimi
+- [x] Klavye navigasyonu denetimi — 5 modal yalnızca fareyle kapanıyordu
+      (Esc yoktu); ortak `useModal` kancasıyla Esc + odak tuzağı + odak
+      iadesi eklendi. "İçeriğe atla" bağlantısı yoktu, eklendi.
+      9 E2E testiyle korunuyor.
 
 ## 9. Test & CI/CD
 - [x] GitHub Actions: lint + typecheck + test + build

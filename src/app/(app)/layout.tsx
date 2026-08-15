@@ -50,7 +50,7 @@ export default async function AppLayout({
     <WelcomeTour userId={user.id} fullName={profile?.full_name ?? null} />
     <div className="flex min-h-[100dvh]">
       <SideNav isAdmin={!!profile?.is_admin} userId={user.id} />
-      <main className="px-safe w-full min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main id="icerik" tabIndex={-1} className="px-safe w-full min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
         {/* Mobil üst bar — notch/Dynamic Island payı ile */}
         <div className="pt-bar-safe sticky top-0 z-30 flex items-center justify-between border-b border-ink-border bg-ink/80 px-5 pb-3 backdrop-blur md:hidden">
           <Link href="/dashboard" className="flex items-center gap-2 font-bold">

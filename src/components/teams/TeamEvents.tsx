@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Glass } from "./shared";
 import { createEvent, toggleEventJoin } from "@/lib/teams/actions";
 import { EVENT_KIND_LABEL, ROLE_RANK, type EventKind, type TeamEvent, type TeamHub } from "@/lib/teams/types";
+import { useModal, modalProps } from "@/lib/a11y/use-modal";
 
 const KIND_ICON: Record<EventKind, React.ReactNode> = {
   challenge: <Swords size={16} />,
@@ -164,6 +165,8 @@ function EventModal({ teamId, onClose }: { teamId: string; onClose: () => void }
     router.refresh();
   }
 
+  const modalRef = useModal<HTMLDivElement>(true, onClose);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 backdrop-blur-sm sm:place-items-center sm:p-4" onClick={onClose}>
       <motion.div
@@ -171,6 +174,8 @@ function EventModal({ teamId, onClose }: { teamId: string; onClose: () => void }
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        {...modalProps()}
         className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
       >
         <p className="mb-3 text-lg font-bold">Takım Etkinliği</p>

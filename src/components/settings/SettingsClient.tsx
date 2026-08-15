@@ -12,6 +12,7 @@ import { FontScaleControl, FontScaleIcon } from "@/components/theme/FontScale";
 import { saveUserSettings, exportMyData, deleteMyAccount } from "@/lib/settings/actions";
 import { PUSH_CATEGORY_LABELS, type PushCategory } from "@/lib/push/categories";
 import type { UserSettings } from "@/lib/database.types";
+import { useModal, modalProps } from "@/lib/a11y/use-modal";
 
 const NOTIF_CATS = Object.keys(PUSH_CATEGORY_LABELS) as PushCategory[];
 
@@ -71,6 +72,10 @@ export function SettingsClient({ email, settings, isPremium }: { email: string; 
   const [saved, setSaved] = React.useState(false);
   const [, start] = React.useTransition();
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+
+  // Hesap silme onayı klavyeyle kapanamıyordu — Esc yok, arka plana da
+  // klavyeyle tıklanamaz. Kullanıcı pencerede kilitli kalıyordu.
+  const silmeRef = useModal<HTMLDivElement>(confirmDelete, () => setConfirmDelete(false));
   const [deleteText, setDeleteText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
@@ -185,8 +190,9 @@ export function SettingsClient({ email, settings, isPremium }: { email: string; 
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-ink-border bg-ink-card p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-coral">Hesabını sil</h3>
+          <div className="w-full max-w-sm rounded-2xl border border-ink-border bg-ink-card p-6" onClick={(e) => e.stopPropagation()}
+            ref={silmeRef} {...modalProps("hesap-sil-baslik")}>
+            <h3 id="hesap-sil-baslik" className="text-lg font-bold text-coral">Hesabını sil</h3>
             <p className="mt-2 text-sm text-fg-muted">
               Bu işlem <strong>geri alınamaz</strong>. Tüm antrenman, beslenme, XP ve profil verin kalıcı olarak silinir.
               Onaylamak için <strong>SİL</strong> yaz.

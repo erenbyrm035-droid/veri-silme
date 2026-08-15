@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Segments } from "./shared";
 import { qrMatrix, qrSvgPath } from "@/lib/qr";
 import { createInviteLink } from "@/lib/teams/actions";
+import { useModal, modalProps } from "@/lib/a11y/use-modal";
 
 type Mode = "link" | "qr" | "code";
 
@@ -37,6 +38,8 @@ export function InviteModal({
     await copyText(`${text}\n${link}`);
   }
 
+  const modalRef = useModal<HTMLDivElement>(true, onClose);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-black/60 backdrop-blur-sm sm:place-items-center sm:p-4" onClick={onClose}>
       <motion.div
@@ -44,6 +47,8 @@ export function InviteModal({
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        {...modalProps()}
         className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-ink-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl sm:pb-5"
       >
         <div className="mb-3 flex items-center justify-between">

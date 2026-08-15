@@ -52,8 +52,13 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Rate limit (AI route)
 - [x] RLS tüm tablolarda
 - [x] XSS/CSRF/SQL-injection önlemleri
-- [ ] Rate limit'i tüm yazma API'larına yaygınlaştır (Upstash Redis önerilir)
-- [ ] Bağımlılık güvenlik taraması (`npm audit`, Dependabot)
+- [x] Rate limit — AI uçlarına patlama sınırı (premium dahil), play/verify ve
+      barkod uçlarına sınır, yazma action'larına profil bazlı sınır. Ödeme
+      webhook'ları bilerek istisna. Upstash bağlanınca dağıtık olur (kod
+      değişikliği gerekmez). Ayrıntı: `docs/guvenlik-notlari.md`
+- [x] Bağımlılık güvenlik taraması — Dependabot (haftalık, gruplu) +
+      `npm audit` denetimi. Next.js'te 8 açık (3 yüksek) bulunup kapatıldı.
+      Bilerek açık bırakılanların gerekçesi: `docs/guvenlik-notlari.md`
 - [ ] Secret rotasyonu (Vercel token + Supabase service_role)
 
 ## 7. Gözlemlenebilirlik

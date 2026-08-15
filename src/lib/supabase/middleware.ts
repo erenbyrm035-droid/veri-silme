@@ -33,14 +33,40 @@ function isPublic(pathname: string) {
 
 /**
  * Oturumu yeniler ve korumalı rotalara erişimi denetler.
- * Ortam değişkenleri yoksa (örn. ilk kurulum) sessizce geçiş yapar.
+ *
+ * ORTAM DEĞİŞKENİ YOKSA NE OLUR — bu blok eskiden koşulsuz olarak isteği
+ * geçiriyordu ("ilk kurulumda engel olmasın" diye). Sonucu şuydu: Supabase
+ * değişkenleri eksik ya da yanlış adlandırılmışsa kimlik doğrulama kapısının
+ * TAMAMI sessizce devre dışı kalıyor, /dashboard dahil her korumalı sayfa
+ * herkese açılıyordu. Ne hata, ne log, ne bir işaret. E2E testleri bunu
+ * yakaladı.
+ *
+ * Artık ortama göre ayrışıyor:
+ *   - geliştirme: eskisi gibi geçirilir (ilk kurulum engellenmesin),
+ *   - üretim: KAPALI tarafa düşer — korumalı rota giriş sayfasına atılır ve
+ *     yapılandırma hatası loglanır. Yanlış yapılandırma yüzünden veri
+ *     açığa çıkmaktansa uygulamanın giriş ekranında takılması yeğdir.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return response;
+  if (!url || !key) {
+    if (process.env.NODE_ENV !== "production") return response;
+
+    console.error(
+      "[middleware] Supabase ortam değişkenleri eksik — kimlik doğrulama " +
+        "kapısı çalışamıyor. NEXT_PUBLIC_SUPABASE_URL / " +
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY tanımlayın."
+    );
+    const { pathname } = request.nextUrl;
+    if (isPublic(pathname)) return response;
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
 
   const supabase = createServerClient(url, key, {
     cookies: {

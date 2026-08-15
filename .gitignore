@@ -44,3 +44,9 @@ viva-source.zip
 # üretilmiş teslimatlar — scripts/ altındaki betiklerle yeniden üretilir
 viva-egzersiz-kutuphanesi.pdf
 exercises.json
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

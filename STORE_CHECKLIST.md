@@ -95,7 +95,13 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Vitest unit testleri — saf fonksiyonlar (workout engine, XP projeksiyonu,
       egzersiz isim/arama, AI güvenlik kalıpları, postür eşikleri, plan/SKU
       eşlemesi, profil ve takım şemaları, takım üyelik kapıları)
-- [ ] Playwright E2E (login → onboarding → workout → AI)
+- [x] Playwright E2E — 22 test, CI'da her push'ta koşuyor. Oturum
+      GEREKTİRMEYEN akışlar tam kapsanıyor (kimlik doğrulama kapısı, giriş
+      sayfası, magic link, erişilebilirlik). Oturum gerektirenler yazıldı
+      ama kimlik bilgisi olmadan ATLANIYOR — sahte yeşil üretmemek için.
+      **Senin adımın:** staging Supabase'de bir test hesabı aç, GitHub
+      repo secrets'a `E2E_EMAIL` / `E2E_PASSWORD` ekle; o testler
+      kendiliğinden koşmaya başlar.
 - [ ] Preview deploy (Vercel PR preview) + Production deploy pipeline
 
 ## 10. Store Hazırlığı

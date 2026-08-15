@@ -100,8 +100,31 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // İKİ ADIMLI DOĞRULAMA — oturum ikinci adımı geçti mi?
+  //
+  // Şifreyle giriş oturumu `aal1`de bırakır. Kullanıcının doğrulanmış bir
+  // faktörü varsa Supabase `nextLevel`i `aal2` bildirir; aradaki fark "bu
+  // oturum henüz kodu girmedi" demektir.
+  let mfaBekliyor = false;
+  if (user) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    mfaBekliyor = !!aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2";
+  }
+
+  // Kod girilmeden korumalı sayfaya geçilemez. Kontrol yalnızca giriş
+  // sayfasında yapılsaydı kullanıcı doğrudan /dashboard yazarak kod ekranını
+  // atlardı; kapı bu yüzden burada, her istekte.
+  if (user && mfaBekliyor && !isPublic(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("mfa", "1");
+    return NextResponse.redirect(redirectUrl);
+  }
+
   // Giriş yapmış kullanıcı login/register görürse dashboard'a yönlenir.
-  if (user && (pathname === "/login" || pathname === "/register")) {
+  // MFA BEKLERKEN YÖNLENDİRİLMEZ: aksi halde /dashboard → /login → /dashboard
+  // sonsuz döngüsü oluşur ve kullanıcı kod ekranını hiç göremez.
+  if (user && !mfaBekliyor && (pathname === "/login" || pathname === "/register")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     return NextResponse.redirect(redirectUrl);

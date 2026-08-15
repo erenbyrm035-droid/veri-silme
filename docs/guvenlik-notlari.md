@@ -133,3 +133,45 @@ npm audit --json | jq '.vulnerabilities | keys'   # paket listesi
 Yeni bir bulgu çıkarsa: kapatılabiliyorsa kapatın; kapatılamıyorsa **bu
 dosyaya gerekçesiyle yazın**. Sessizce görmezden gelinen bir bulgu, altı ay
 sonra kimsenin hatırlamadığı bir borç olur.
+
+---
+
+## İki adımlı doğrulama (TOTP) — kurtarma kodu YOK
+
+`STORE_CHECKLIST` madde 28 kapsamında Supabase MFA API'siyle eklendi
+(`src/lib/auth/mfa-actions.ts`, `src/components/settings/MfaPanel.tsx`).
+
+**Bilinçli sınır:** Supabase TOTP'de yerleşik kurtarma kodu üretmiyor.
+Kendi tablomuzu yazmak — hash'lenmiş saklama, tek kullanımlık tüketme,
+sıfırlama akışı — ayrı ve dikkat isteyen bir iş. **Yarım bir kurtarma akışı
+hiç olmamasından tehlikelidir**, çünkü kullanıcı korunduğunu sanır.
+
+Sonuç: telefonunu kaybeden ya da doğrulayıcı uygulamayı silen kullanıcı
+hesabına giremez. Kurtarma yalnızca elle mümkün:
+
+```sql
+-- Supabase SQL Editor. Kullanıcının kimliğini BAŞKA bir yolla doğruladıktan
+-- sonra çalıştır (kayıtlı e-postadan gelen talep + hesap bilgileri teyidi).
+delete from auth.mfa_factors where user_id = '<kullanıcı-uuid>';
+```
+
+Kullanıcı bu riski açma ekranında **görüyor** — uyarı, açma düğmesinin
+yanında ve okunur boyutta, küçük puntoyla geçiştirilmedi.
+
+**Sonraki adım (yapılırsa):** kurtarma kodu tablosu + tek kullanımlık tüketme
++ "kodlarını indir" ekranı. O zaman bu bölüm güncellenmeli.
+
+### Kaba kuvvet koruması
+
+Altı haneli kodun 10⁶ olasılığı var; sınırsız denemeyle dakikalar içinde
+kırılır. Doğrulama ucu kullanıcı+IP başına 5 dakikada 8 denemeyle sınırlı,
+kayıt başlatma 15 dakikada 5 ile. Hata mesajı sabit — Supabase'in döndürdüğü
+metin faktör durumunu ele verebilirdi.
+
+### Kapı nerede
+
+Kontrol `src/lib/supabase/middleware.ts` içinde, **her istekte**. Yalnızca
+giriş sayfasında yapılsaydı kullanıcı doğrudan `/dashboard` yazarak kod
+ekranını atlardı. Bekleyen MFA varken "giriş yapmış kullanıcıyı dashboard'a
+yolla" kuralı da devre dışı — yoksa `/dashboard → /login → /dashboard`
+sonsuz döngüsü oluşurdu.

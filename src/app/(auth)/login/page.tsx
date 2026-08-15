@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuth } from "@/components/auth/SocialAuth";
 import { recordLoginAction } from "@/lib/auth/record-login-action";
 import { sendMagicLink } from "@/lib/auth/magic-link-action";
+import { mfaGerekliMi, mfaDogrula } from "@/lib/auth/mfa-actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +20,10 @@ export default function LoginPage() {
   // "kutunu kontrol et" durumu ayrı tutulur.
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+  // İki adımlı doğrulama: şifre doğruysa oturum aal1'de kalır; kullanıcının
+  // doğrulanmış faktörü varsa burada kod istenir.
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaKod, setMfaKod] = useState("");
 
   async function handleMagicLink() {
     setError(null);
@@ -35,6 +40,18 @@ export default function LoginPage() {
     }
     setMagicSent(true);
   }
+
+  // Korumalı bir sayfaya gitmeye çalışan ama kodunu girmemiş kullanıcı
+  // middleware tarafından buraya `?mfa=1` ile atılıyor. Şifre formunu değil,
+  // doğrudan kod ekranını görmeli — şifresini yeniden girmesi anlamsız.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!new URLSearchParams(window.location.search).has("mfa")) return;
+    void (async () => {
+      const aal = await mfaGerekliMi();
+      if (aal.ok && aal.data?.gerekli && aal.data.factorId) setMfaFactorId(aal.data.factorId);
+    })();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,10 +70,68 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
+    // İkinci adım gerekiyor mu? Gerekiyorsa dashboard'a GİTMEDEN kod istenir.
+    const aal = await mfaGerekliMi();
+    if (aal.ok && aal.data?.gerekli && aal.data.factorId) {
+      setMfaFactorId(aal.data.factorId);
+      setLoading(false);
+      return;
+    }
+
     // Giriş olayını kaydet (istatistik/aktivite için, akışı bloklamaz).
     void recordLoginAction("password");
     router.push("/dashboard");
     router.refresh();
+  }
+
+  async function handleMfa(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaFactorId) return;
+    setError(null);
+    setLoading(true);
+    const res = await mfaDogrula(mfaFactorId, mfaKod);
+    if (!res.ok) {
+      setError(res.error ?? "Kod doğrulanamadı.");
+      setLoading(false);
+      return;
+    }
+    void recordLoginAction("password+mfa");
+    router.push("/dashboard");
+    router.refresh();
+  }
+
+  // İkinci adım ekranı — şifre formunun yerine geçer.
+  if (mfaFactorId) {
+    return (
+      <div className="card">
+        <h1 className="text-2xl font-bold">İki adımlı doğrulama</h1>
+        <p className="mt-1 text-sm text-fg-muted">
+          Doğrulayıcı uygulamandaki 6 haneli kodu gir.
+        </p>
+        <form onSubmit={handleMfa} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="giris-mfa-kod" className="label">Kod</label>
+            <input
+              id="giris-mfa-kod"
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={mfaKod}
+              onChange={(ev) => setMfaKod(ev.target.value.replace(/\D/g, ""))}
+              placeholder="000000"
+              className="input mt-1.5 text-center text-lg tracking-[0.4em]"
+            />
+          </div>
+          {error && (
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+          )}
+          <button type="submit" disabled={loading || mfaKod.length !== 6} className="btn-primary w-full">
+            {loading ? "Doğrulanıyor..." : "Doğrula"}
+          </button>
+        </form>
+      </div>
+    );
   }
 
   return (

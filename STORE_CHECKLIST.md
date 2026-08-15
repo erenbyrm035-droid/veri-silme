@@ -25,7 +25,11 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
       **Senin adımın:** Supabase → Authentication → Providers → Email →
       "Enable Email OTP / Magic Link" açık olmalı; e-posta şablonu
       Authentication → Email Templates → Magic Link.
-- [ ] 2FA / MFA (Supabase MFA etkinleştir + UI)
+- [x] 2FA / MFA — TOTP, Ayarlar → Güvenlik. Kayıt (QR + kod), girişte kod
+      ekranı, middleware'de her istekte aal2 kapısı, kaba kuvvet sınırı.
+      **Kurtarma kodu YOK** (gerekçe: `docs/guvenlik-notlari.md`) —
+      kullanıcı açma ekranında uyarılıyor.
+      **Senin adımın:** Supabase → Authentication → Providers → MFA etkin olmalı.
 
 ## 3. Ödeme & Premium
 - [x] Plan/rol sistemi (Free/Monthly/Yearly/Lifetime)

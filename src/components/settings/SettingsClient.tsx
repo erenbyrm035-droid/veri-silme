@@ -13,6 +13,7 @@ import { saveUserSettings, exportMyData, deleteMyAccount } from "@/lib/settings/
 import { PUSH_CATEGORY_LABELS, type PushCategory } from "@/lib/push/categories";
 import type { UserSettings } from "@/lib/database.types";
 import { useModal, modalProps } from "@/lib/a11y/use-modal";
+import { MfaPanel } from "./MfaPanel";
 
 const NOTIF_CATS = Object.keys(PUSH_CATEGORY_LABELS) as PushCategory[];
 
@@ -127,6 +128,18 @@ export function SettingsClient({ email, settings, isPremium }: { email: string; 
         <Row icon={Crown} title="Premium" desc={isPremium ? "Aktif üyelik" : "Planları görüntüle"}>
           <Link href="/premium" className="text-sm font-semibold text-brand">{isPremium ? "Yönet" : "Yükselt"}</Link>
         </Row>
+      </Section>
+
+      <Section title="Güvenlik">
+        {/* İki adımlı doğrulama kendi durumunu yönetiyor; Row'un dar sağ
+            sütununa sığmıyor (QR + kod girişi). Tam genişlik veriliyor. */}
+        <div className="px-4 py-3.5">
+          <p className="text-sm font-semibold">İki adımlı doğrulama</p>
+          <p className="mb-3 text-xs text-fg-muted">
+            Şifrenin yanında doğrulayıcı uygulamadan 6 haneli kod
+          </p>
+          <MfaPanel />
+        </div>
       </Section>
 
       <Section title="Görünüm & Bölge">

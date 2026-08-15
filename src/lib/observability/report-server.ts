@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sentryCapture } from "./sentry";
 
 export type Severity = "info" | "warning" | "error" | "fatal";
 export interface ReportContext {
@@ -39,7 +40,14 @@ export async function reportError(err: unknown, ctx: ReportContext = {}): Promis
   } catch {
     // Tablo/bağlantı yoksa sessizce geç.
   }
-  if (process.env.SENTRY_DSN) {
-    // TODO: Sentry captureException.
-  }
+
+  // Sentry, error_logs'un YERİNE değil YANINA geçiyor: tablo bizim kendi
+  // sorgulayabildiğimiz kalıcı kayıt, Sentry ise uyarı/gruplama katmanı.
+  // Biri çökerse diğeri hâlâ hatayı tutuyor. DSN yoksa bu çağrı boşa gider.
+  sentryCapture(err, {
+    where,
+    severity,
+    userId: ctx.userId ?? null,
+    extra: ctx.extra,
+  });
 }

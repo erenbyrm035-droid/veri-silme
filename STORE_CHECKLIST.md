@@ -65,7 +65,10 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Global error boundary
 - [x] Hata log tablosu + admin görüntüleme
 - [x] Admin sistem sağlığı paneli
-- [ ] Sentry DSN bağlama
+- [x] Sentry — kod tarafı bağlandı (`@sentry/node`, tek huniden).
+      **Senin adımın:** sentry.io'da proje aç, DSN'i Vercel'e `SENTRY_DSN`
+      olarak gir. Tanımlanana kadar hatalar yine `error_logs` tablosuna
+      ve konsola yazılıyor — hiçbir şey bozulmuyor.
 - [ ] Uptime/alerting (ör. Better Uptime / Vercel Monitoring)
 
 ## 8. Erişilebilirlik

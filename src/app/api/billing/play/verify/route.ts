@@ -9,6 +9,7 @@ import { GoogleAuth } from "google-auth-library";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { PLANS, premiumUntilFor, type PlanId } from "@/lib/premium/plans";
 import { reportError } from "@/lib/observability/report-server";
+import { checkRateLimitAsync, clientKey, tooManyRequests } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,16 @@ function planForSku(sku: string): PlanId | null {
 export async function POST(request: Request) {
   const { data: { user } } = await (await createClient()).auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "Oturum yok." }, { status: 401 });
+
+  // Bu uç KULLANICI tarafından çağrılıyor (webhook değil) ve her çağrı Google
+  // Play Developer API'sine gidiyor — kotalı bir dış servis. Geçersiz token'la
+  // yığın deneme hem o kotayı yakar hem de satın alma doğrulamasını yavaşlatır.
+  // Gerçek satın alma nadir bir olay; dakikada 10 fazlasıyla yeterli.
+  const rl = await checkRateLimitAsync(`play-verify:${clientKey(request, user.id)}`, {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
 
   const saJson = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
   const pkg = process.env.ANDROID_PACKAGE_NAME;

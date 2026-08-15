@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimitAsync, clientKey, tooManyRequests } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,15 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
+
+  // Barkod tarama kamerayla hızlı ardışık istek üretebilir, o yüzden tavan
+  // geniş. Sınır yine de gerekli: her çağrı bir DB sorgusu ve dosyanın
+  // yorumuna göre ileride harici barkod API'sine (ücretli olabilir) bağlanacak.
+  const rl = await checkRateLimitAsync(`barcode:${clientKey(request, user.id)}`, {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
 
   const body = await request.json().catch(() => ({}));
   const barcode: string = typeof body?.barcode === "string" ? body.barcode.trim() : "";

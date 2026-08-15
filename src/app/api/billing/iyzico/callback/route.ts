@@ -1,5 +1,10 @@
 // iyzico ödeme dönüşü — ödeme sayfasından POST ile 'token' gelir.
 // Sonucu doğrular, başarılıysa premium hakkını uygular, /premium'a yönlendirir.
+// HIZ SINIRI YOK — BİLEREK. Bu ucu çağıran kullanıcı değil, ödeme
+// sağlayıcısının sunucusu. IP başına bir sınır meşru bir ödeme bildirimini
+// düşürebilir ve kullanıcının parası gittiği hâlde üyeliği açılmaz — sessiz
+// ve pahalı bir tutarsızlık. Koruma başka katmanda: imza/kimlik doğrulaması
+// ve `billing_events.event_id` ile idempotency (aynı olay iki kez işlenmez).
 import { NextResponse } from "next/server";
 import { iyzicoRetrieve, iyzicoLookupPending } from "@/lib/billing/iyzico";
 import { createAdminClient } from "@/lib/supabase/server";

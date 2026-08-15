@@ -2,6 +2,11 @@
 // alanlarını (profiles.is_premium/membership_type/premium_until) günceller.
 // RevenueCat Dashboard → Integrations → Webhooks: URL = /api/billing/revenuecat,
 // Authorization header = REVENUECAT_WEBHOOK_SECRET.
+// HIZ SINIRI YOK — BİLEREK. Bu ucu çağıran kullanıcı değil, ödeme
+// sağlayıcısının sunucusu. IP başına bir sınır meşru bir ödeme bildirimini
+// düşürebilir ve kullanıcının parası gittiği hâlde üyeliği açılmaz — sessiz
+// ve pahalı bir tutarsızlık. Koruma başka katmanda: imza/kimlik doğrulaması
+// ve `billing_events.event_id` ile idempotency (aynı olay iki kez işlenmez).
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { premiumUntilFor } from "@/lib/premium/plans";

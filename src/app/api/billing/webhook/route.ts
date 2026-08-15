@@ -1,6 +1,11 @@
 // Ödeme webhook alıcısı — sağlayıcı-bağımsız.
 // İmza doğrular → billing_events'e idempotent yazar → premium hakkını uygular.
 // Sağlayıcı yapılandırılmamışsa güvenle 200/no-op döner (uygulamayı bozmaz).
+// HIZ SINIRI YOK — BİLEREK. Bu ucu çağıran kullanıcı değil, ödeme
+// sağlayıcısının sunucusu. IP başına bir sınır meşru bir ödeme bildirimini
+// düşürebilir ve kullanıcının parası gittiği hâlde üyeliği açılmaz — sessiz
+// ve pahalı bir tutarsızlık. Koruma başka katmanda: imza/kimlik doğrulaması
+// ve `billing_events.event_id` ile idempotency (aynı olay iki kez işlenmez).
 import { getBillingProvider } from "@/lib/billing/provider";
 import { createAdminClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";

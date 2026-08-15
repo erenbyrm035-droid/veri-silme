@@ -18,7 +18,13 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] E-posta doğrulama
 - [x] Google OAuth (Supabase'te sağlayıcı açık olmalı)
 - [x] Apple OAuth (Supabase'te sağlayıcı açık olmalı)
-- [ ] Magic Link butonu (altyapı hazır — UI eklenecek)
+- [x] Magic Link (şifresiz giriş) — sunucu action'ı + giriş sayfası butonu.
+      (Bu madde "altyapı hazır" diyordu ama `signInWithOtp` kod tabanında
+      hiç yoktu; gönderme tarafı sıfırdan yazıldı. Doğrulama tarafı gerçekten
+      hazırdı: `/auth/confirm` `verifyOtp`'yi genel işliyor.)
+      **Senin adımın:** Supabase → Authentication → Providers → Email →
+      "Enable Email OTP / Magic Link" açık olmalı; e-posta şablonu
+      Authentication → Email Templates → Magic Link.
 - [ ] 2FA / MFA (Supabase MFA etkinleştir + UI)
 
 ## 3. Ödeme & Premium

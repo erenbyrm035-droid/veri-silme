@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuth } from "@/components/auth/SocialAuth";
 import { recordLoginAction } from "@/lib/auth/record-login-action";
+import { sendMagicLink } from "@/lib/auth/magic-link-action";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +15,26 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Şifresiz giriş: aynı e-posta alanı kullanılır, yalnızca gönderim ve
+  // "kutunu kontrol et" durumu ayrı tutulur.
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
+
+  async function handleMagicLink() {
+    setError(null);
+    if (!email.trim()) {
+      setError("Önce e-posta adresini gir.");
+      return;
+    }
+    setMagicLoading(true);
+    const res = await sendMagicLink(email);
+    setMagicLoading(false);
+    if (!res.ok) {
+      setError(res.error ?? "Bağlantı gönderilemedi.");
+      return;
+    }
+    setMagicSent(true);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +119,35 @@ export default function LoginPage() {
           {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </button>
       </form>
+
+      {/* Şifresiz giriş — şifresini hatırlamayan kullanıcı için sıfırlama
+          akışından daha kısa yol. Aynı e-posta alanını kullanır. */}
+      <div className="mt-5">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-ink-border" />
+          <span className="text-xs text-fg-muted">veya</span>
+          <span className="h-px flex-1 bg-ink-border" />
+        </div>
+
+        {magicSent ? (
+          <p
+            role="status"
+            className="mt-4 rounded-lg bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-400"
+          >
+            Giriş bağlantısı <strong>{email}</strong> adresine gönderildi.
+            Kutunu kontrol et — bağlantı kısa süre geçerli.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleMagicLink}
+            disabled={magicLoading}
+            className="btn-ghost mt-4 w-full"
+          >
+            {magicLoading ? "Bağlantı gönderiliyor..." : "Şifresiz giriş bağlantısı gönder"}
+          </button>
+        )}
+      </div>
 
       <p className="mt-6 text-center text-sm text-fg-muted">
         Hesabın yok mu?{" "}

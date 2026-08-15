@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+// Paket boyutu analizi: `npm run analyze` → .next/analyze/*.html
+// ANALYZE tanımlı değilken hiçbir etkisi yok, normal build'i yavaşlatmaz.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 // Güvenlik başlıkları — production sertleştirme.
 // CSP, Next.js + Supabase + TF.js(wasm/eval) + Three.js(blob worker) ile uyumlu
@@ -63,4 +68,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

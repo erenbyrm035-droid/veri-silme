@@ -51,7 +51,9 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Görsel optimizasyonu (`next/image`, avif/webp)
 - [x] Statik varlık cache header'ları
 - [ ] Lighthouse ≥ 90 (Perf/A11y/Best/SEO) doğrulaması
-- [ ] Bundle analiz (`@next/bundle-analyzer`) ile büyük chunk kontrolü
+- [x] Bundle analiz — `npm run analyze`. Ölçüm yapıldı: paylaşılan JS 103 kB,
+      en ağır rota 292 kB; three/tfjs/recharts zaten `dynamic()` arkasında.
+      Ek optimizasyon gerekmiyor. Ayrıntı: `docs/paket-boyutu.md`
 
 ## 6. Güvenlik
 - [x] Güvenlik başlıkları (CSP/HSTS/X-Frame/nosniff/Permissions-Policy)
@@ -80,7 +82,8 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 ## 8. Erişilebilirlik
 - [x] Koyu/açık tema + kontrast
 - [x] Semantik HTML + aria etiketleri (nav/butonlar)
-- [ ] Dinamik yazı tipi ölçeği (ayarlarda font-scale)
+- [x] Dinamik yazı tipi ölçeği — Ayarlar → Yazı boyutu (4 kademe). Kök
+      font-size değiştiği için tüm arayüz orantılı ölçekleniyor.
 - [ ] VoiceOver/TalkBack manuel testi
 - [ ] Klavye navigasyonu tam denetimi
 

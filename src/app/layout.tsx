@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeInitScript } from "@/components/theme/ThemeToggle";
+import { FontScaleInitScript } from "@/components/theme/FontScale";
 import { PWARegister } from "@/components/PWARegister";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -83,6 +84,7 @@ export default function RootLayout({
     <html lang="tr" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-[100dvh] bg-ink font-sans antialiased">
         <ThemeInitScript />
+        <FontScaleInitScript />
         {children}
         <PWARegister />
       </body>

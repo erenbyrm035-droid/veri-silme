@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { FontScaleControl, FontScaleIcon } from "@/components/theme/FontScale";
 import { saveUserSettings, exportMyData, deleteMyAccount } from "@/lib/settings/actions";
 import { PUSH_CATEGORY_LABELS, type PushCategory } from "@/lib/push/categories";
 import type { UserSettings } from "@/lib/database.types";
@@ -125,6 +126,9 @@ export function SettingsClient({ email, settings, isPremium }: { email: string; 
 
       <Section title="Görünüm & Bölge">
         <Row icon={Palette} title="Tema" desc="Açık / koyu / sistem"><ThemeToggle /></Row>
+        <Row icon={FontScaleIcon} title="Yazı boyutu" desc="Arayüzün tamamını büyütür">
+          <FontScaleControl />
+        </Row>
         <Row icon={Globe} title="Dil">
           <select value={locale} onChange={(e) => { const v = e.target.value as "tr" | "en"; setLocale(v); persist({ locale: v }); }}
             className="rounded-lg border border-ink-border bg-ink-soft px-2.5 py-1.5 text-sm outline-none">

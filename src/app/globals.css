@@ -64,6 +64,16 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+/* ============================================================================
+   Yazı tipi ölçeği (erişilebilirlik).
+   Tailwind tüm boyutları rem cinsinden ürettiği için kök font-size'ı
+   değiştirmek bütün arayüzü orantılı ölçekler. "normal" varsayılan olduğu
+   için ona ait kural yoktur — öznitelik hiç konmaz.
+   ============================================================================ */
+:root[data-font-scale="kucuk"]     { font-size: 87.5%; }  /* 14px */
+:root[data-font-scale="buyuk"]     { font-size: 112.5%; } /* 18px */
+:root[data-font-scale="cok-buyuk"] { font-size: 125%; }   /* 20px */
+
 html {
   transition: background-color 0.25s ease;
   /* iOS: yatay taşmayı ve sağ/sol lastik bandı engelle */

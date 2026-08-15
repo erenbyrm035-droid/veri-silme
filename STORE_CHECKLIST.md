@@ -127,7 +127,11 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 ## 11. Veri & Yedekleme
 - [x] Migration'lar (0001–0022) versiyonlanmış + `schema.sql` senkron
 - [ ] Supabase otomatik yedekleme planı doğrulaması
-- [ ] Storage bucket kota/temizlik politikası
+- [x] Storage kota/temizlik — yetim dosya toplayıcı. VARSAYILAN OLARAK
+      SİLMEZ, yalnızca sayar. `/api/maintenance/storage-cleanup` ile kuru
+      rapora bak; sayılar beklendiği gibiyse Vercel'de
+      `STORAGE_CLEANUP_APPLY=1` yap. Kapsam: body-photos, meal-photos,
+      posture-photos (eşlemesi kesin olanlar).
 
 ---
 

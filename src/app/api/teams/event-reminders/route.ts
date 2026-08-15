@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report-server";
+import { runStorageCleanup } from "@/lib/maintenance/storage-cleanup";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,7 +43,12 @@ export async function GET(req: Request) {
       .lte("starts_at", until.toISOString());
 
     const list = (events as { id: string; team_id: string; title: string; starts_at: string; location: string | null }[]) ?? [];
-    if (list.length === 0) return NextResponse.json({ ok: true, sent: 0 });
+
+    // ERKEN DÖNÜŞ YOK — bu satır eskiden `return` ediyordu ve arkasındaki
+    // günlük işleri (hedef değerlendirmesi, depolama temizliği) atlıyordu.
+    // Yaklaşan etkinliği olmayan bir günde AI hedefleri hiç değerlendirilmiyor,
+    // "başarıldı/kaçırıldı" bildirimleri sessizce gitmiyordu. Artık yalnızca
+    // hatırlatma bloğu atlanıyor, günlük işler her hâlükârda koşuyor.
 
     const slugByTeam = new Map<string, string>();
     const { data: teams } = await admin
@@ -91,7 +97,8 @@ export async function GET(req: Request) {
     }
 
     const goals = await evaluateGoals(admin);
-    return NextResponse.json({ ok: true, sent, goals });
+    const storage = await cleanupStorage(admin);
+    return NextResponse.json({ ok: true, sent, goals, storage });
   } catch (err) {
     await reportError(err, { where: "api/teams/event-reminders" });
     return NextResponse.json({ error: "internal" }, { status: 500 });
@@ -123,4 +130,29 @@ async function evaluateGoals(admin: ReturnType<typeof createAdminClient>): Promi
     } catch { /* tek kullanıcının hatası cron'u durdurmasın */ }
   }
   return changed;
+}
+
+/**
+ * Depolama temizliği — yetim dosyaları sayar, izin verilmişse siler.
+ *
+ * NEDEN BURADA: `evaluateGoals` ile aynı gerekçe — Vercel Hobby planı günde
+ * TEK cron'a izin veriyor ve o slot bu uç noktada.
+ *
+ * VARSAYILAN OLARAK SİLMEZ, yalnızca sayar. Silme `STORAGE_CLEANUP_APPLY=1`
+ * ortam değişkeniyle açıkça açılmalı. Sebep: yanlış bir eşleme kullanıcının
+ * vücut fotoğrafını siler ve geri dönüşü yoktur. Önce
+ * `/api/maintenance/storage-cleanup` ile kuru rapora bakılmalı, sayılar
+ * beklendiği gibiyse değişken açılmalı.
+ *
+ * Hata cron'u durdurmaz; hatırlatmalar ve hedefler zaten işlenmiş olur.
+ */
+async function cleanupStorage(admin: ReturnType<typeof createAdminClient>) {
+  const apply = process.env.STORAGE_CLEANUP_APPLY === "1";
+  try {
+    const r = await runStorageCleanup(admin, { apply });
+    return { yetim: r.toplamYetim, silinen: r.toplamSilinen, uygulandi: r.uygulandi };
+  } catch (err) {
+    await reportError(err, { where: "cron/storage-cleanup", severity: "warning" });
+    return { yetim: -1, silinen: 0, uygulandi: false };
+  }
 }

@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
   "/api/billing/revenuecat",      // RevenueCat webhook (oturumsuz, server-to-server)
   "/api/billing/webhook",         // Genel ödeme webhook'u (imza ile doğrulanır)
   "/api/teams/event-reminders",   // Vercel Cron (CRON_SECRET ile doğrulanır)
+  "/api/maintenance",             // Bakım cron'ları (CRON_SECRET ile doğrulanır)
   // Yasal sayfalar — oturumsuz erişilebilir (iyzico/App Store incelemesi için)
   "/terms", "/privacy", "/support", "/contact", "/about",
   "/mesafeli-satis", "/iptal-iade", "/fiyatlar",

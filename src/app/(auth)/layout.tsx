@@ -17,7 +17,10 @@ export default function AuthLayout({
         </span>
         Viva <span className="font-semibold text-fg-muted">AI Coach</span>
       </Link>
-      <div className="w-full max-w-sm">{children}</div>
+      {/* Atlama bağlantısının hedefi — kök layout'taki "İçeriğe atla"
+          buraya iner. Hedefi olmayan atlama bağlantısı odaklanamaz
+          (Lighthouse skip-link denetimi bunu yakaladı). */}
+      <main id="icerik" tabIndex={-1} className="w-full max-w-sm">{children}</main>
     </div>
   );
 }

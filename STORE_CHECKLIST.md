@@ -50,7 +50,11 @@ adım adım kontrol listesi. `[x]` = hazır, `[ ]` = yapılacak.
 - [x] Lazy loading (TF.js, Three.js, grafikler)
 - [x] Görsel optimizasyonu (`next/image`, avif/webp)
 - [x] Statik varlık cache header'ları
-- [ ] Lighthouse ≥ 90 (Perf/A11y/Best/SEO) doğrulaması
+- [x] Lighthouse — CI'da her push'ta koşuyor (`lighthouserc.js`). Yerel
+      ölçüm: **dört kategoride de 100** (/ ve /login). Ölçüm sırasında iki
+      erişilebilirlik hatası bulunup düzeltildi.
+      **Not:** bu değer yerel koşullarda; gerçek doğrulama domain
+      bağlandıktan sonra PageSpeed Insights ile yapılmalı.
 - [x] Bundle analiz — `npm run analyze`. Ölçüm yapıldı: paylaşılan JS 103 kB,
       en ağır rota 292 kB; three/tfjs/recharts zaten `dynamic()` arkasında.
       Ek optimizasyon gerekmiyor. Ayrıntı: `docs/paket-boyutu.md`

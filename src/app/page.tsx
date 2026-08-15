@@ -90,7 +90,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="px-safe mx-auto max-w-6xl px-5">
+      <main id="icerik" tabIndex={-1} className="px-safe mx-auto max-w-6xl px-5">
         {/* HERO */}
         <section className="grid animate-fade-up items-center gap-12 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div>
@@ -191,7 +191,7 @@ export default function LandingPage() {
                 >
                   {s.n}
                 </div>
-                <h4 className="mt-3.5 font-semibold">{s.title}</h4>
+                <h3 className="mt-3.5 font-semibold">{s.title}</h3>
                 <p className="mt-1.5 text-sm text-fg-muted">{s.desc}</p>
               </div>
             ))}

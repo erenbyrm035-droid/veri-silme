@@ -48,7 +48,7 @@ export default async function AdminLayout({
             avatarUrl={profile?.avatar_url ?? null}
             role={role}
           />
-          <main className="px-safe mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+          <main id="icerik" tabIndex={-1} className="px-safe mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
             {children}
           </main>
         </div>

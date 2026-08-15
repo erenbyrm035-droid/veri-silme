@@ -26,7 +26,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           <ThemeToggle />
         </div>
       </header>
-      <main className="px-safe mx-auto max-w-3xl px-5 py-10">{children}</main>
+      <main id="icerik" tabIndex={-1} className="px-safe mx-auto max-w-3xl px-5 py-10">{children}</main>
       <footer className="pb-safe px-safe border-t border-ink-border">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-5 gap-y-2 px-5 py-6 text-sm text-fg-muted">
           {links.map((l) => (

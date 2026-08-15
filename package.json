@@ -2,7 +2,7 @@
   "name": "ai-fitness-coach",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Fitness Coach - T\u00fcrkiye pazar\u0131na y\u00f6nelik yapay zeka destekli fitness ko\u00e7u SaaS uygulamas\u0131",
+  "description": "AI Fitness Coach - Türkiye pazarına yönelik yapay zeka destekli fitness koçu SaaS uygulaması",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -57,6 +57,7 @@
   "devDependencies": {
     "@gltf-transform/core": "^4.4.1",
     "@gltf-transform/extensions": "^4.4.1",
+    "@lhci/cli": "^0.15.1",
     "@next/bundle-analyzer": "^16.3.1",
     "@playwright/test": "^1.62.1",
     "@types/node": "^20.17.6",
@@ -70,6 +71,7 @@
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.6.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^9.1.0"
   }
 }

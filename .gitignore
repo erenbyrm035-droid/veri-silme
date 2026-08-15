@@ -50,3 +50,6 @@ exercises.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Lighthouse CI
+/.lighthouseci/

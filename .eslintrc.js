@@ -21,6 +21,7 @@ module.exports = {
     "out/",
     "android-twa/", // Android kaynak dosyaları — JS/TS değil
     "scripts/", // tek seferlik veri betikleri
+    "loadtest/", // load test koşum takımı — uygulama derlemesine girmez, k6 çalıştırır
   ],
 
   rules: {

@@ -8,6 +8,7 @@ import { createMarkdownStripper } from "@/lib/ai/strip-markdown";
 import { aiRateGuard } from "@/lib/security/ai-guard";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 export async function POST(request: Request) {
   const supabase = await createClient();

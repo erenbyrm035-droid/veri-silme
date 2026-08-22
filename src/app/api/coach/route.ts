@@ -14,6 +14,7 @@ import { recordRuns } from "@/lib/ai/agents/runner";
 import { extractSignals, type MemoryInput } from "@/lib/ai/agents/memory";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /** Modele gönderilen son mesaj sayısı. */
 const HISTORY_LIMIT = 16;

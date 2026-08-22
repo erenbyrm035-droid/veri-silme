@@ -14,6 +14,7 @@ import { POSTURE_PROBLEMS } from "@/lib/posture/problems";
 import type { PostureProblem, TrainingEnvironment } from "@/lib/database.types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /**
  * Postür analizi + düzeltici program üretir ve posture_analyses'e kaydeder.

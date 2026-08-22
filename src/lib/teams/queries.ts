@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/server";
 import { periodWindow } from "@/lib/gamification/queries";
 import {
@@ -144,7 +145,21 @@ async function computeTeamRank(admin: Admin, teamId: string): Promise<number> {
 // ---------------------------------------------------------------------------
 // Takım hub verisi
 // ---------------------------------------------------------------------------
-export async function getTeamHub(slug: string, userId: string): Promise<TeamHub | null> {
+
+/**
+ * İSTEK BAŞINA HAFIZALANDI — `/teams/[slug]` sayfası bunu İKİ kez çağırıyor:
+ * bir kez `generateMetadata` içinde (başlık için), bir kez de sayfanın kendisi
+ * için. Gövde 12 ayrı Supabase sorgusu yapıyor; yani tek bir sayfa görüntülemesi
+ * 24 sorguya mal oluyordu. `cache()` ikinci çağrıyı birinciyle aynı sonuca
+ * bağlar — 12'ye iner.
+ *
+ * Not: `getTeamHubImpl` aşağıda `function` bildirimiyle tanımlı, yani yukarı
+ * kaldırılıyor (hoisting); bu satırın tanımdan önce gelmesi kasıtlı ve
+ * geçerli — sıralamayı "düzeltmeye" gerek yok.
+ */
+export const getTeamHub = cache(getTeamHubImpl);
+
+async function getTeamHubImpl(slug: string, userId: string): Promise<TeamHub | null> {
   const admin = createAdminClient();
   const { data: t } = await admin
     .from("teams")

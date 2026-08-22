@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPrograms } from "@/lib/data/programs";
@@ -13,7 +14,8 @@ export default async function ProgramsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const programs = await getPrograms(user!.id);
+  if (!user) redirect("/login");
+  const programs = await getPrograms(user.id);
 
   return (
     <div className="space-y-6">

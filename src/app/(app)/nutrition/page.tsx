@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Salad, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -12,25 +13,26 @@ export default async function NutritionPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const [{ data: profile }, { data: foods }, { data: logs }, { data: water }] =
     await Promise.all([
       supabase
         .from("profiles")
         .select("daily_calorie_goal, daily_protein_goal, daily_water_goal_ml")
-        .eq("id", user!.id)
+        .eq("id", user.id)
         .single(),
       supabase.from("foods").select("*").order("name"),
       supabase
         .from("nutrition_logs")
         .select("*")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .eq("log_date", todayISO())
         .order("created_at", { ascending: true }),
       supabase
         .from("water_logs")
         .select("amount_ml")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .eq("log_date", todayISO()),
     ]);
 
@@ -64,7 +66,7 @@ export default async function NutritionPage() {
       </Link>
 
       <NutritionTracker
-        userId={user!.id}
+        userId={user.id}
         foods={(foods ?? []) as Food[]}
         initialLogs={(logs ?? []) as NutritionLog[]}
         calorieGoal={profile?.daily_calorie_goal ?? 2000}

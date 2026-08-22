@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/server";
 import { presenceMap, socialStates } from "./queries";
 import { getInsights, insightsToFacts } from "@/lib/ai/insights";
@@ -341,7 +342,17 @@ export interface PublicProfile {
 }
 
 /** Bir sporcunun herkese açık profili — akışında yalnızca görebildiği gönderiler. */
-export async function getPublicProfile(targetId: string, viewerId: string): Promise<PublicProfile | null> {
+/**
+ * İSTEK BAŞINA HAFIZALANDI — `/u/[id]` sayfası bunu iki kez çağırıyor
+ * (`generateMetadata` + sayfa). Gövde 9 Supabase sorgusu yapıyor; tek bir
+ * profil görüntülemesi 18 sorgu demekti. Şimdi 9.
+ *
+ * `getPublicProfileImpl` aşağıda `function` bildirimiyle tanımlı ve yukarı
+ * kaldırılıyor; bu satırın önce gelmesi kasıtlı.
+ */
+export const getPublicProfile = cache(getPublicProfileImpl);
+
+async function getPublicProfileImpl(targetId: string, viewerId: string): Promise<PublicProfile | null> {
   const admin = createAdminClient();
 
   const { data: prof } = await admin

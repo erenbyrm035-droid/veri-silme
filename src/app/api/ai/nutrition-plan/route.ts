@@ -8,6 +8,7 @@ import { NUTRITION_GOAL_LABELS } from "@/lib/constants";
 import type { NutritionGoal, Goal } from "@/lib/database.types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 // Eski hedef (Goal) → beslenme hedefi eşlemesi (fallback).
 const GOAL_MAP: Record<Goal, NutritionGoal> = {

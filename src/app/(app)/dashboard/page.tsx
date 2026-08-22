@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboard } from "@/lib/data/dashboard";
@@ -24,9 +25,10 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   // Tek çağrı — içeride Promise.all ile paralel. Eskiden 8 ardışık sorgu vardı.
-  const d = await getDashboard(user!.id);
+  const d = await getDashboard(user.id);
   const { summary, gam } = d;
 
   const motivation = getDailyMotivation(d.goal);
@@ -48,12 +50,12 @@ export default async function DashboardPage() {
   // Rapor "tembel" üretiliyor: o gün için yoksa ve saati geldiyse bir kez üretilir,
   // sonra `unique(user_id, kind, report_date)` sayesinde tekrar üretilmez.
   // İkisi de sessizce null/boş dönebilir; o zaman blok hiç çizilmez.
-  const snapshot = await getAgentSnapshot(user!.id);
+  const snapshot = await getAgentSnapshot(user.id);
   const nudges = topNudges(snapshot, 3);
   const hour = Number(
     new Date().toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Europe/Istanbul" })
   );
-  const report = snapshot ? await ensureReport(user!.id, hour >= 18 ? "evening" : "morning") : null;
+  const report = snapshot ? await ensureReport(user.id, hour >= 18 ? "evening" : "morning") : null;
 
   return (
     <div className="space-y-5">
@@ -119,7 +121,7 @@ export default async function DashboardPage() {
           />
           <div className="col-span-2 sm:col-span-1">
             <WaterWidget
-              userId={user!.id}
+              userId={user.id}
               initialMl={summary.water_ml}
               goalMl={summary.water_goal}
             />

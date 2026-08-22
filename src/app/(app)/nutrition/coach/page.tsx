@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -33,11 +34,12 @@ export default async function NutritionCoachPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   const nutritionGoal: NutritionGoal =
@@ -55,10 +57,10 @@ export default async function NutritionCoachPage() {
   });
 
   const [plan, shopping, reports, scoreResult] = await Promise.all([
-    getLatestMealPlan(user!.id),
-    getLatestShoppingList(user!.id),
-    getReports(user!.id),
-    computeNutritionScore(user!.id),
+    getLatestMealPlan(user.id),
+    getLatestShoppingList(user.id),
+    getReports(user.id),
+    computeNutritionScore(user.id),
   ]);
   const nutritionScore = {
     score: scoreResult.score,
@@ -85,7 +87,7 @@ export default async function NutritionCoachPage() {
       </header>
 
       <NutritionCoachClient
-        userId={user!.id}
+        userId={user.id}
         targets={targets}
         initialPlan={plan}
         initialShopping={shopping}

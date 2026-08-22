@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
@@ -14,6 +15,7 @@ export default async function WorkoutsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   // En son YARIM KALAN antrenman: tamamlanmamış ama en az bir seti bitmiş.
   // Ayrı bir sorgu değil; aşağıdaki listeden türetiliyor.
@@ -21,11 +23,11 @@ export default async function WorkoutsPage() {
     supabase
       .from("workouts")
       .select("id, title, workout_date, status, duration_min, workout_sets(count)")
-      .eq("user_id", user!.id)
+      .eq("user_id", user.id)
       .order("workout_date", { ascending: false })
       .limit(50),
-    getWeeklyVolume(user!.id),
-    getTopPRs(user!.id),
+    getWeeklyVolume(user.id),
+    getTopPRs(user.id),
   ]);
 
   // Yarım kalan antrenman: tamamlanmamış, planlı seti olan en yeni kayıt.

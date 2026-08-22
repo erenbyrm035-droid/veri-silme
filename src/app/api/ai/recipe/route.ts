@@ -5,6 +5,7 @@ import { getAIProvider } from "@/lib/ai/provider";
 import { stripMarkdown } from "@/lib/ai/strip-markdown";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /**
  * Akıllı tarif: kullanıcının elindeki malzemelere veya makro hedefine göre

@@ -7,6 +7,7 @@ import { GOAL_LABELS, EXPERIENCE_LABELS, ENVIRONMENT_LABELS } from "@/lib/consta
 import type { ProgramPlan } from "@/lib/database.types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /**
  * Kullanıcı profili + (varsa) kas analizine göre 8 haftalık antrenman programı

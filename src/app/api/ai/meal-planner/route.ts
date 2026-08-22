@@ -10,6 +10,7 @@ import { NUTRITION_GOAL_LABELS } from "@/lib/constants";
 import type { NutritionGoal, Goal } from "@/lib/database.types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 const GOAL_MAP: Record<Goal, NutritionGoal> = {
   lose_weight: "lose_fat", gain_muscle: "gain_muscle", get_fit: "healthy",

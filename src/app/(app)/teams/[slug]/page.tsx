@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTeamHub } from "@/lib/teams/queries";
 import { TeamHubClient } from "@/components/teams/TeamHubClient";
@@ -18,7 +18,8 @@ export default async function TeamHubPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const hub = await getTeamHub(slug, user!.id);
+  if (!user) redirect("/login");
+  const hub = await getTeamHub(slug, user.id);
   if (!hub) notFound();
   return <TeamHubClient hub={hub} />;
 }

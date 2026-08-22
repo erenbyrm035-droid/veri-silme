@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listTeams } from "@/lib/teams/queries";
 import { TeamsDirectory } from "@/components/teams/TeamsDirectory";
@@ -12,7 +13,8 @@ export const metadata = {
 export default async function TeamsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { teams, myTeamId } = await listTeams(user!.id, { period: "all_time" });
+  if (!user) redirect("/login");
+  const { teams, myTeamId } = await listTeams(user.id, { period: "all_time" });
   const myTeam = teams.find((t) => t.id === myTeamId) ?? null;
 
   return (

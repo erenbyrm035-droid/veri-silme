@@ -9,6 +9,7 @@ import { calcMacroTargets } from "@/lib/nutrition";
 import type { NutritionGoal } from "@/lib/database.types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /** Son 7 günün verisinden haftalık AI beslenme raporu üretir ve kaydeder. */
 export async function POST(request: Request) {

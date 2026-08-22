@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProgramById } from "@/lib/data/programs";
 import { Card } from "@/components/ui/Card";
@@ -19,8 +19,9 @@ export default async function ProgramDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  const program = await getProgramById(id, user!.id);
+  const program = await getProgramById(id, user.id);
   if (!program) notFound();
 
   const weeks: ProgramWeek[] = program.plan?.weeks ?? [];
@@ -82,7 +83,7 @@ export default async function ProgramDetailPage({
                     </div>
                     {w.week === 1 && (
                       <div className="mt-3">
-                        <StartDayButton day={d} userId={user!.id} />
+                        <StartDayButton day={d} userId={user.id} />
                       </div>
                     )}
                   </div>

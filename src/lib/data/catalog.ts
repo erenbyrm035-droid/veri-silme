@@ -46,7 +46,7 @@ const ONE_HOUR = 3600;
  * bir sonraki istekte kendiliğinden düzelir. Geçici hata kalıcı boşluğa
  * dönüşemez.
  */
-function ensure<T>(data: T[] | null, error: { message: string } | null, ne: string): T[] {
+export function ensure<T>(data: T[] | null, error: { message: string } | null, ne: string): T[] {
   if (error) throw new Error(`Katalog yüklenemedi (${ne}): ${error.message}`);
   return data ?? [];
 }

@@ -4,6 +4,7 @@ import { aiRateGuard } from "@/lib/security/ai-guard";
 import { getAIProvider } from "@/lib/ai/provider";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 interface Recognized {
   name: string; calories: number; protein_g: number; carbs_g: number; fat_g: number;

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRewardsPage } from "@/lib/rewards/queries";
 import { RewardsClient } from "@/components/rewards/RewardsClient";
@@ -12,7 +13,8 @@ export const metadata = {
 export default async function RewardsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const data = await getRewardsPage(user!.id);
+  if (!user) redirect("/login");
+  const data = await getRewardsPage(user.id);
 
   return (
     <div className="space-y-5">

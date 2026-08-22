@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPostureAnalyses } from "@/lib/data/posture";
 import { PostureClient } from "@/components/posture/PostureClient";
@@ -18,14 +19,15 @@ export default async function PosturePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const [{ data: profile }, analyses] = await Promise.all([
     supabase
       .from("profiles")
       .select("training_environment")
-      .eq("id", user!.id)
+      .eq("id", user.id)
       .single(),
-    getPostureAnalyses(user!.id),
+    getPostureAnalyses(user.id),
   ]);
 
   const defaultEnv: TrainingEnvironment =
@@ -50,7 +52,7 @@ export default async function PosturePage() {
         description="Duruş analizi ve düzeltici program Premium üyeliğe özeldir."
       >
         <PostureClient
-          userId={user!.id}
+          userId={user.id}
           defaultEnv={defaultEnv}
           initialAnalyses={analyses}
         />

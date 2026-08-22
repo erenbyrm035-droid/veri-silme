@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkoutSession } from "@/components/WorkoutSession";
 import { WorkoutEngine } from "@/components/workout/WorkoutEngine";
@@ -26,12 +26,13 @@ export default async function WorkoutDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: workout } = await supabase
     .from("workouts")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (!workout) notFound();
@@ -40,11 +41,11 @@ export default async function WorkoutDetailPage({
   // performansları. Eskiden burada `exercises` tablosunun TAMAMI (682 satır)
   // istemciye gidiyordu.
   const [data, { data: profile }] = await Promise.all([
-    getWorkoutSessionData(id, user!.id),
+    getWorkoutSessionData(id, user.id),
     supabase
       .from("profiles")
       .select("is_premium, membership_type, premium_until")
-      .eq("id", user!.id)
+      .eq("id", user.id)
       .maybeSingle(),
   ]);
 
@@ -54,12 +55,12 @@ export default async function WorkoutDetailPage({
   // Bulgular deterministik hesaplanır; AI analizi başarısız olursa (anahtar
   // yok, kota, ağ) özet yine eksiksiz çalışır — sadece anlatı eksik olur.
   if (workout.status === "completed") {
-    const summary = await getWorkoutSummary(id, user!.id);
+    const summary = await getWorkoutSummary(id, user.id);
     if (summary) {
       const analysis = await analyzeWorkout(summary).catch(() => null);
       // Arkadaşların açık partisi varsa özet ekranında katılma seçeneği çıkar.
       // Yoksa kart hiç gösterilmez — boş kutu ekranı kirletir.
-      const party = await getFriendParty(createAdminClient(), user!.id).catch(() => null);
+      const party = await getFriendParty(createAdminClient(), user.id).catch(() => null);
       return (
         <div className="space-y-6">
           <Link

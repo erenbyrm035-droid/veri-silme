@@ -6,6 +6,7 @@ import { stripMarkdown } from "@/lib/ai/strip-markdown";
 import { GOAL_LABELS } from "@/lib/constants";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // AI üretimi uzun sürer; Vercel varsayılanı (10-15 sn) yetmiyor
 
 /**
  * Kullanıcının antrenman geçmişini analiz ederek geride kalan kas gruplarını

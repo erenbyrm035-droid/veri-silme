@@ -29,10 +29,17 @@ export default function NewWorkoutPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    // Oturum arada düşmüş olabilir (sekme uzun süre açık kaldıysa sık görülür).
+    // `user!` demek burada çökmeye yol açıyordu; kullanıcıyı girişe yolluyoruz.
+    if (!user) {
+      setLoading(false);
+      router.push("/login");
+      return;
+    }
     const { data, error } = await supabase
       .from("workouts")
       .insert({
-        user_id: user!.id,
+        user_id: user.id,
         title: title.trim(),
         workout_date: date,
         status: "in_progress",

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { PhotoCompare } from "@/components/PhotoCompare";
@@ -10,11 +11,12 @@ export default async function ProgressPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: measurements } = await supabase
     .from("body_measurements")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("measured_on", { ascending: true })
     .limit(100);
 
@@ -28,11 +30,11 @@ export default async function ProgressPage() {
       </header>
 
       <ProgressTracker
-        userId={user!.id}
+        userId={user.id}
         initial={(measurements ?? []) as BodyMeasurement[]}
       />
 
-      <PhotoCompare userId={user!.id} />
+      <PhotoCompare userId={user.id} />
     </div>
   );
 }

@@ -152,3 +152,126 @@ koşu verisi ister.
 
 SAFE / WARNING / CRITICAL eşzamanlı kullanıcı sayıları **hâlâ boş** — ve tahmin
 edilerek doldurulmayacak. Gerekenler `loadtest/README.md` bölüm 0'da.
+
+---
+
+## ÖLÇÜM — 10.000 / 50.000 / 100.000 kayıtlı kullanıcı
+
+Bu bölüm **gerçek koşu verisi**. Tahmin yok.
+
+### Nasıl ölçüldü
+
+Bu kapta Docker daemon'ı çalışmıyor, yani Supabase yerel yığını kurulamıyor.
+Ama PostgreSQL 16 sunucusu kurulu. Kurulan düzenek:
+
+1. Temiz Postgres 16 kümesi (`shared_buffers=2GB`, 4 çekirdek, 15 GB RAM)
+2. Supabase'in `auth` / `storage` şemaları taklit edildi
+3. `supabase/baseline/0000_taban.sql` + **53 migration'ın tamamı** uygulandı
+   → 131 tablo, 369 indeks, 161 fonksiyon, 208 RLS politikası
+4. Sentetik veri: kullanıcı başına 20 antrenman, antrenman başına 8 set,
+   60 su + 60 beslenme kaydı; tarihler **365 güne yayılmış** (30 günlük pencere
+   verinin %8,4'ünü tutuyor — gerçekçi seçicilik)
+
+100.000 kullanıcıda tablo hacmi: **2M antrenman · 16M set · 3M su · 3M beslenme**.
+
+> **Bu Vercel+Supabase üretimi DEĞİL.** Ağ gecikmesi, PostgREST katmanı,
+> bağlantı havuzu ve Supabase'in donanımı burada yok. Ölçülen şey **veritabanı
+> sorgularının veri hacmiyle nasıl davrandığı** — ve asıl darboğaz orada.
+
+### Sonuç 1 — Kullanıcı başına sorgular sorunsuz
+
+`explain analyze` ile sunucu tarafı süreleri (100.000 kullanıcıda):
+
+| Sorgu | Süre |
+|---|---|
+| Kullanıcının son 20 antrenmanı | **0,32 ms** |
+| Kullanıcının 30 günlük beslenme kaydı | **0,07 ms** |
+| Profil okuma | < 1 ms |
+| Bir antrenmanın setleri | < 1 ms |
+
+Bu yollar doğru indekslenmiş ve 100.000 kullanıcıda bile sorun çıkarmıyor.
+
+> Ölçüm aracının kendi maliyeti (psql süreç başlatma) 28 ms; yukarıdaki
+> değerler ondan arındırılmış gerçek sunucu süreleri.
+
+### Sonuç 2 — Liderlik tablosu tek darboğaz
+
+`leaderboard_scores()` iki farklı davranıyor:
+
+| Çağrı | 10.000 | 50.000 | 100.000 |
+|---|---|---|---|
+| **Tüm zamanlar** (`p_start = null`) | 38 ms | 68 ms | **108 ms** |
+| **Dönemsel** (haftalık) | 1.716 ms | 3.482 ms | **3.570 ms** |
+| **Dönemsel** (aylık) | — | — | **4.968 ms** |
+
+> ⚠️ 10.000 ve 50.000 ölçümleri, tarihlerin 365 güne yayılmasından ÖNCE
+> alındı (o sırada veri 60 güne sıkışıktı, pencere daha büyük bir oran
+> tutuyordu). Yön doğru ama 100.000 satırıyla birebir kıyaslanamaz.
+> **Güvenilir olan 100.000 satırı** — düzeltilmiş dağılımla ölçüldü.
+
+**Neden bu fark:** tüm-zamanlar sorgusu hazır toplanmış `user_gamification`
+tablosunu okuyor. Dönemsel sorgu ise her çağrıda `workouts`, `workout_sets`,
+`water_logs`, `nutrition_logs` tablolarını **kullanıcı filtresi olmadan**
+baştan sona tarayıp yeniden hesaplıyor.
+
+100.000 kullanıcıda 30 günlük pencere için CTE kırılımı:
+
+| CTE | Tablo | Süre |
+|---|---|---|
+| protein | nutrition_logs (3M) | 3.403 ms |
+| su | water_logs (3M) | 1.861 ms |
+| hacim | workout_sets (16M) ⋈ workouts | 1.385 ms |
+
+Hepsinde aynı plan: `Parallel Seq Scan`.
+
+### Kök neden — indeksler yanlış sütunla başlıyor
+
+Mevcut indekslerin hepsi `(user_id, tarih)` sırasında:
+
+```
+idx_workouts_user_date    (user_id, workout_date desc)
+idx_nutrition_user_date   (user_id, log_date desc)
+idx_water_user_date       (user_id, log_date desc)
+```
+
+Sorguda `user_id` yokken öncü sütun kullanılamaz → sequential scan.
+
+### Düzeltme ve ölçülen kazanç
+
+`supabase/migrations/0054_liderlik_indeksleri.sql` tarih-öncelikli indeksler
+ekliyor. Aynı replikada, aynı veriyle, öncesi/sonrası:
+
+| Sorgu | İndekssiz | İndeksli | Kazanç |
+|---|---|---|---|
+| haftalık | 3.570 ms | **1.856 ms** | 1,9× |
+| aylık | 4.968 ms | **3.476 ms** | 1,4× |
+
+**Ama bu yeterli değil.** Aylık sorgu indeksle bile 3,5 saniye. Bir web
+isteğinin içinde çalışmamalı; Vercel fonksiyon süresi ve Supabase statement
+timeout'u bunu keser.
+
+**Kalıcı çözüm:** dönem puanlarını da önceden toplamak — tıpkı tüm-zamanlar
+sorgusunun okuduğu `user_gamification` gibi (108 ms). Bu ayrı bir iş: periyodik
+toplama tablosu + tazeleme cron'u. Bu turda YAPILMADI, çünkü şema değişikliği
+ve XP kurallarının yeniden üretilmesi gerekiyor.
+
+### Bu sorgu nerelerde çalışıyor
+
+`leaderboard_scores` yalnızca liderlik sayfasında değil — `listTeams()`
+(`src/lib/teams/queries.ts`) her takım listesi görüntülemesinde çağırıyor.
+Yani Takımlar sayfası da aynı maliyeti ödüyor.
+
+---
+
+## Ölçülemeyen kısım — hâlâ duruyor
+
+Yukarıdaki veri **veritabanı katmanı** için gerçek. Ama şunlar hâlâ ölçülmedi
+ve bu ortamda ölçülemez:
+
+- Eşzamanlı kullanıcı altında uçtan uca gecikme (Vercel + PostgREST + ağ)
+- Supabase bağlantı tavanı ve DB CPU'su
+- Vercel fonksiyon süresi ve soğuk başlangıç
+- AI uçlarının gerçek gecikmesi ve token maliyeti
+
+**SAFE / WARNING / CRITICAL eşzamanlı kullanıcı sayıları hâlâ boş.** Onlar
+gerçek altyapıda koşu ister; gerekenler `loadtest/README.md` bölüm 0'da.

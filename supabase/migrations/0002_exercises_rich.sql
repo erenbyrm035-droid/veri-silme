@@ -4,9 +4,18 @@
 -- Idempotent.
 -- ============================================================================
 
+-- HER TİP KENDİ BLOĞUNDA. Eskiden ikisi tek bir `do $$ ... exception when
+-- duplicate_object` bloğundaydı ve bu sessiz bir tuzaktı: `exercise_category`
+-- zaten varsa ilk ifade istisna atıyor, blok orada kopuyor ve `alt_relation`
+-- HİÇ YARATILMIYOR. Sonra 36. satırda "type alt_relation does not exist" ile
+-- patlıyordu. Temiz bir veritabanında fark edilmiyordu çünkü orada ikisi de
+-- yoktu; ancak tiplerden biri önceden varsa ortaya çıkıyor.
 do $$ begin
   create type exercise_category as enum
     ('isolation', 'compound', 'functional', 'mobility', 'stretch', 'rehab');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
   create type alt_relation as enum ('alternative', 'similar', 'home', 'gym');
 exception when duplicate_object then null; end $$;
 

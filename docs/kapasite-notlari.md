@@ -275,3 +275,116 @@ ve bu ortamda ölçülemez:
 
 **SAFE / WARNING / CRITICAL eşzamanlı kullanıcı sayıları hâlâ boş.** Onlar
 gerçek altyapıda koşu ister; gerekenler `loadtest/README.md` bölüm 0'da.
+
+---
+
+## Taban şema artık gerçek (güncelleme)
+
+Yukarıdaki ölçümler `database.types.ts`ten TÜRETİLEN bir taban şema üzerinde
+yapılmıştı. O taban artık **üretim veritabanından alınan gerçeğiyle**
+değiştirildi.
+
+Aradaki fark küçük değildi:
+
+| | Tipten tahmin | Üretimden gerçek |
+|---|---|---|
+| İndeks | 6 | **43** |
+| CHECK kısıtı | 0 | **8** |
+| `profiles` sütunu | 16 | **63** |
+| `exercises` sütunu | 16 | **53** |
+| `foods` sütunu | 9 | **42** |
+
+**Ölçüm sonuçlarına etkisi:** liderlik darboğazının kök nedeni değişmedi.
+Gerçek şemada da `workouts`, `water_logs` ve `nutrition_logs` üzerindeki
+indekslerin hepsi `(user_id, tarih)` ile başlıyor — yani kullanıcı filtresi
+olmayan sorgu yine sequential scan'e düşüyor. Tarih-öncelikli indeks önerisi
+(`0054`) geçerliliğini koruyor.
+
+Yeni öğrenilen: `foods` tablosunda trigram (GIN) indeksleri var, `exercises`
+üzerinde `aliases`/`tags` için GIN indeksleri var. Bunlar tipte görünmüyordu.
+
+### Bu sırada bulunan bir migration hatası
+
+`0002_exercises_rich.sql` iki `create type`i tek bir
+`do $$ ... exception when duplicate_object` bloğuna koymuştu:
+
+```sql
+do $$ begin
+  create type exercise_category as enum (...);
+  create type alt_relation as enum (...);   -- ← buraya hiç gelinmiyor
+exception when duplicate_object then null; end $$;
+```
+
+`exercise_category` zaten varsa ilk ifade istisna atıyor, blok orada kopuyor ve
+`alt_relation` **hiç yaratılmıyor**. Sonra aynı dosyanın 36. satırı
+"type alt_relation does not exist" ile patlıyor.
+
+Temiz bir veritabanında görünmüyordu (ikisi de yoktu). Taban şema
+`exercise_category`yi önceden tanımlayınca ortaya çıktı. Her tip kendi bloğuna
+ayrıldı. Kod tabanında aynı desenin başka örneği taranıp arandı — yok.
+
+### Şu anki üretim hacmi
+
+Ölçümden sonra üretim veritabanının satır sayıları alındı:
+
+| Tablo | Satır |
+|---|---|
+| workout_sets | 187 |
+| water_logs | 120 |
+| workouts | 35 |
+| profiles | 12 |
+| nutrition_logs | 12 |
+
+Aynı liderlik sorgusu üretimde **5 ms** sürüyor — çünkü tarayacak veri yok.
+
+**Yani liderlik darboğazı bugünün problemi değil.** Ölçüm "şu an bozuk"
+demiyor, "şu hacme gelince bozulacak" diyor. `workout_sets` bir milyonu
+geçtiğinde yeniden bakılmalı:
+
+```sql
+select count(*) as setler,
+       case when count(*) > 1000000 then 'ŞİMDİ liderlik toplamasını yap'
+            when count(*) >  200000 then 'planla'
+            else 'sorun yok' end as durum
+from public.workout_sets;
+```
+
+### Taban şemayı çıkarma sorgusu
+
+Şema değiştiğinde `supabase/baseline/0000_taban.sql`i tazelemek için Supabase
+SQL Editor'de çalıştırılacak sorgu — `pg_dump`a erişim gerekmeden aynı işi
+yapar:
+
+```sql
+with hedef as (
+  select unnest(array[
+    'profiles','exercises','workouts','workout_sets','body_measurements',
+    'foods','nutrition_logs','water_logs','ai_conversations','ai_messages'
+  ]) as t
+)
+select string_agg(ddl, chr(10)||chr(10) order by sira, ad, alt, ddl) from (
+  select 1 as sira, c.relname as ad, 0 as alt,
+    'create table public.' || c.relname || ' (' || chr(10) ||
+    string_agg('  ' || a.attname || ' ' || format_type(a.atttypid, a.atttypmod)
+      || case when a.attnotnull then ' not null' else '' end
+      || coalesce(' default ' || pg_get_expr(d.adbin, d.adrelid), ''),
+      ',' || chr(10) order by a.attnum) || chr(10) || ');'
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+  left join pg_attrdef d on d.adrelid = c.oid and d.adnum = a.attnum
+  where n.nspname = 'public' and c.relkind = 'r' and c.relname in (select t from hedef)
+  group by c.relname
+  union all
+  select 2, rel.relname, con.contype::int,
+    'alter table public.' || rel.relname || ' add constraint ' || con.conname
+    || ' ' || pg_get_constraintdef(con.oid) || ';'
+  from pg_constraint con
+  join pg_class rel on rel.oid = con.conrelid
+  join pg_namespace n on n.oid = rel.relnamespace
+  where n.nspname = 'public' and rel.relname in (select t from hedef)
+  union all
+  select 3, tablename, 0, indexdef || ';'
+  from pg_indexes where schemaname = 'public' and tablename in (select t from hedef)
+) x;
+```

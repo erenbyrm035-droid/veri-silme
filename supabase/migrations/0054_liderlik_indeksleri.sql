@@ -28,6 +28,12 @@
 -- DİKKAT: `create index concurrently` transaction bloğu İÇİNDE çalışmaz.
 -- Migration çalıştırıcınız dosyayı transaction'a sarıyorsa bu dosyayı
 -- Supabase SQL Editor'den elle, tek tek çalıştırın.
+-- ÜRETİMDE UYGULANDI: 2026-08-23, Supabase SQL Editor'den elle.
+-- O sırada tablolar küçüktü (workout_sets 187 satır), bu yüzden CONCURRENTLY
+-- olmadan tek seferde çalıştırıldı — indeks ADLARI aynı, dolayısıyla bu dosya
+-- bir migration aracıyla koşulursa `if not exists` sayesinde no-op olur.
+-- Dosyada CONCURRENTLY duruyor: başka bir ortamda ya da veri büyüdükten sonra
+-- doğru davranış o.
 -- ============================================================================
 
 create index concurrently if not exists idx_water_logs_date_user

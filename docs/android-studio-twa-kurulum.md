@@ -264,6 +264,53 @@ manifest/ikon/paket ayarları değişince gerekir.
 
 ---
 
+---
+
+## Domain değiştiğinde
+
+Kabuk şu an `veri-silme.vercel.app` adresine bağlı. Kendi alan adına geçince
+bu adres **dört ayrı dosyada, üç farklı biçimde** güncellenmeli: manifest'te
+ham host, `strings.xml`'de kaçırılmış tırnaklı JSON, bir de manifest URL'i.
+
+Birini atlamak sessiz bir hataya yol açar: uygulama açılır ama **adres çubuğu
+kaybolmaz**, çünkü Digital Asset Links doğrulaması tutmaz.
+
+Elle uğraşma, betik var:
+
+```bash
+# önce ne değişeceğini gör
+node android-twa/domain-degistir.mjs vivaapp.com --kuru
+
+# uygula
+node android-twa/domain-degistir.mjs vivaapp.com
+```
+
+Betik `https://` ön ekini ve sondaki eğik çizgiyi kendi temizler; aynı domaini
+ikinci kez verirsen hiçbir şey yapmaz. Geri almak için eski adresi ver.
+
+Sonrasında sırasıyla:
+
+1. Vercel → Settings → Domains → domaini bağla
+2. `NEXT_PUBLIC_SITE_URL = https://vivaapp.com` (Environment Variables)
+3. Supabase → Authentication → URL Configuration'ı güncelle
+   (`docs/DOMAIN-SONRASI-YAPILACAKLAR.md`)
+4. Deploy et ve doğrula:
+   ```bash
+   curl -s https://vivaapp.com/.well-known/assetlinks.json
+   ```
+5. Android Studio'da `versionCode`u artır, yeni AAB üret, Play Console'a yükle
+
+### ÜRETİM YAYINI ÖNCESİ HALLET
+
+Uygulama `vercel.app` ile yayınlandıktan sonra domain değiştirirsen, kurulu
+uygulamalar hâlâ eski adresi doğrulanmış sayar. Yeni domaine yönlendirme
+koyarsan Chrome bunu doğrulanmamış görür ve **adres çubuğunu geri getirir** —
+uygulama çalışır ama "web sitesi" gibi görünür. Kullanıcı güncelleme yapana
+kadar öyle kalır ve güncellemeyi zorlayamazsın.
+
+Kapalı test (closed testing) sırasında domain değiştirmek sorunsuz — test
+kullanıcıları zaten yeni sürümü alır. Sıkıntı üretim yayınından sonrasında.
+
 ## Sorun giderme
 
 | Hata | Çözüm |

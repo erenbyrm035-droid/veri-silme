@@ -388,3 +388,90 @@ select string_agg(ddl, chr(10)||chr(10) order by sira, ad, alt, ddl) from (
   from pg_indexes where schemaname = 'public' and tablename in (select t from hedef)
 ) x;
 ```
+
+---
+
+## ÖLÇÜM 2 — 100 / 1.000 / 10.000 kullanıcı (asıl ilgilenilen aralık)
+
+İlk ölçüm 10.000'den başlıyordu; oysa uygulama 12 kullanıcıda. Bu bölüm
+**100–10.000 aralığını** kapsıyor ve sorulan asıl soruyu cevaplıyor:
+"100–1.000 kişi olunca ne yapacağız?"
+
+**Kurulum:** gerçek taban şema (üretimden alınan) + 54 migration, temiz
+PostgreSQL 16. Tarihler baştan **365 güne yayılmış** — ilk ölçümdeki
+sıkıştırma hatası tekrarlanmadı. Süreler `explain analyze`in sunucu tarafı
+`Execution Time` değeri (psql süreç maliyeti dahil değil).
+
+| Kullanıcı | Set | DB boyutu | Liderlik tüm-zmn | Liderlik haftalık | Liderlik aylık | Kullanıcı sorgusu |
+|---|---|---|---|---|---|---|
+| **100** | 16.000 | 24 MB | 2,7 ms | 25 ms | 22 ms | 0,28 ms |
+| **1.000** | 160.000 | 91 MB | 2,1 ms | 48 ms | 68 ms | 0,25 ms |
+| **10.000** | 1.600.000 | 772 MB | 5,5 ms | **1.099 ms** | **3.605 ms** | 0,26 ms |
+
+### Okunacak üç şey
+
+**1. Kullanıcı başına sorgular ölçekten bağımsız.** Dashboard, antrenman
+listesi, profil — 100'de de 10.000'de de ~0,25 ms. Bu yollar doğru
+indekslenmiş; büyümekten etkilenmiyorlar.
+
+**2. 100–1.000 arasında yapılacak hiçbir şey yok.** En yavaş sorgu 68 ms,
+veritabanı 91 MB. Optimizasyon gerekmiyor.
+
+**3. Liderlik 1.000 → 10.000 arasında patlıyor.** Haftalık 48 ms → 1.099 ms
+(23×), aylık 68 ms → 3.605 ms (53×). Kök neden yukarıda: kullanıcı filtresiz
+tam tablo taraması.
+
+> **İlk ölçümdeki 10.000 satırıyla fark:** orada haftalık 1.716 ms çıkmıştı,
+> burada 1.099 ms. Sebep tarih dağılımı — ilkinde loglar 60 güne sıkışıktı,
+> pencere verinin daha büyük oranını tutuyordu. **Bu bölümdeki sayılar
+> geçerli olanlar**; ilk ölçümün 10.000/50.000 satırları yalnızca yön
+> gösterir.
+
+### ASIL DUVAR PERFORMANS DEĞİL — YER
+
+Kullanıcı başına **79 KB** veri birikiyor. Supabase ücretsiz katmanı 500 MB.
+
+```
+ 1.000 kullanıcı  →   91 MB   rahat
+ 5.000 kullanıcı  →  ~400 MB  sınıra yaklaşıldı
+ 6.500 kullanıcı  →  ~500 MB  ÜCRETSİZ KATMAN DOLAR
+10.000 kullanıcı  →  772 MB   Pro şart
+```
+
+Yani **performans sorunu çıkmadan önce depolama kotası doluyor.** Doğru sıra:
+
+| Eşik | Ne olur | Ne yapılır |
+|---|---|---|
+| ~6.500 kullanıcı | Ücretsiz katman dolar | Supabase Pro |
+| ~10.000 kullanıcı | Liderlik yavaşlar | Dönem puanı toplama tablosu |
+
+10.000 kullanıcıda yeri yiyenler: `workout_sets` 341 MB, `nutrition_logs`
+193 MB, `water_logs` 159 MB, `workouts` 57 MB. Üçü de kullanıcı × gün
+büyüyor.
+
+> **Sınırlar:** bu sayılar sentetik bir kullanım modeliyle — kullanıcı başına
+> 20 antrenman, antrenman başına 8 set, 60 su + 60 beslenme kaydı. Gerçek
+> kullanıcılar daha az veya daha çok üretebilir; oran değişirse eşikler de
+> kayar. Ayrıca **fotoğraflar (vücut/yemek/postür) Supabase Storage'da, ayrı
+> kotada** — bu 500 MB'a dahil değil.
+
+### İzleme sorgusu
+
+Ayda bir Supabase SQL Editor'de:
+
+```sql
+select
+  (select count(*) from public.profiles)      as kullanici,
+  (select count(*) from public.workout_sets)  as setler,
+  pg_size_pretty(pg_database_size(current_database())) as db_boyutu,
+  case
+    when pg_database_size(current_database()) > 400*1024*1024
+      then 'Pro plana gecmeyi planla'
+    when (select count(*) from public.workout_sets) > 1000000
+      then 'liderlik toplamasini yap'
+    else 'sorun yok'
+  end as durum;
+```
+
+400 MB görülürse plan yükseltme; bir milyon set görülürse liderlik toplama
+işi. İkisi de o an birer günlük iş — şimdiden yapmanın faydası yok.
